@@ -6,33 +6,84 @@ import java.nio.file.Paths;
 import java.util.stream.Stream;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
+import java.util.Set;
+import java.util.HashSet;
 
 /*
  * Load file of people's data, put them in an array/list
- * create a pair tree on string data, key being the index of the array where object.cpf is
+ * create a pair tree for each data (cpf, nome, dataNasc), key being the index of the array where object.cpf is
  */
 
 public class Main {
     public static void main(String[] args) {
-        // load csv file first
+        // load csv file first, create an array of objects
         // cpf, rg, nome, datanasc, cidade
-        ArrayList<Pessoa> pessoa = new ArrayList<Pessoa>();
+        ArrayList<Pessoa> pessoas = new ArrayList<Pessoa>();
+        Scanner scanner = new Scanner(System.in);
+        AVLTreeGeneric<Pair<Integer, Long>> cpfTree = new AVLTreeGeneric<>();
+        AVLTreeGeneric<Pair<Integer, String>> nomeTree = new AVLTreeGeneric<>();
+        AVLTreeGeneric<Pair<Integer, String>> nascTree = new AVLTreeGeneric<>();
+
         /*
-        for (CSVRecord record : records) {
-            pessoa.add(new Pessoa(record.get(0), record.get(1), record.get(2), record.get(3), record.get(4));
+        try {
+            int i = 0;
+            Set<Long> cpfSet = new HashSet<>();
+            String line = "";
+            BufferedReader reader = new BufferedReader(new FileReader("test1.csv"));
+            while((line = reader.readLine()) != null) {
+                String[] values = line.split(",");
+                
+                long cpf = Long.parseLong(values[0]);
+
+                if (!cpfSet.contains(cpf)) {
+                    cpfSet.add(cpf);
+
+                    Pair<Integer, Long> cpfPair = new Pair<>(i, cpf);
+                    cpfTree.insert(cpfPair);
+
+                    long rg = Long.parseLong(values[1]);
+                    
+                    String nome = values[2];
+                    Pair<Integer, String> nomePair = new Pair<>(i, nome);
+                    nomeTree.insert(nomePair);
+
+                    String nasc = values[3];
+                    Pair<Integer, String> nascPair = new Pair<>(i, nasc);
+                    nascTree.insert(nascPair);
+
+                    String cidade = values[4];
+
+                    Pessoa pessoa = new Pessoa(cpf, rg, nome, nasc, cidade);
+                    pessoas.add(pessoa);
+                    i++;
+                } else {
+                    System.out.println("CPF already exists on CSV.");
+                }
+            }
+            reader.close();
+        } catch(Exception e) {
+            e.printStackTrace();
         }
         */
+        loadCSV(cpfTree, nomeTree, nascTree, pessoas);
 
+        // testing
+        for (Pessoa pessoa : pessoas) {
+            System.out.println(pessoa);
+        }
 
-        Text text = new Text();
-        Scanner scanner = new Scanner(System.in);
+        System.out.println("***CPF TREE***");
+        cpfTree.printTree(cpfTree.getRoot());
 
-        AVLTreePessoa<Integer> cpfTree = new AVLTreePessoa<>();
-        //AVLTreePessoa<Map> nomeTree = new AVLTreePessoa<>();
+        System.out.println("***NOME TREE***");
+        nomeTree.printTree(nomeTree.getRoot());
 
-        T userValue = null;
+        System.out.println("***NASCIMENTO TREE***");
+        nascTree.printTree(nascTree.getRoot());
+
         short userOpt = 100;
+        Text text = new Text();
+        int index = -1;
 
         while (userOpt != 6) {
             text.options();
@@ -41,12 +92,36 @@ public class Main {
 
             switch (userOpt) {
             case 1: // Consultar CPF
+                System.out.print("Enter CPF to search> ");
+                long cpf = text.getLong();
+
+                index = cpfTree.getKeyBasedOnValue(cpf);
+
+                if (index == -1) {
+                    System.out.print("CPF não existe.");
+                    break;
+                }
+
+                System.out.println("Details:\n" + pessoas.get(index));
+
                 break;
             case 2: // Consultar Nome
+                System.out.print("Enter name to search> ");
+                String nome = scanner.nextLine();
+
+                index = nomeTree.getKeyBasedOnValue(nome);
+
+                if (index == -1) {
+                    System.out.print("Nome não existe.");
+                    break;
+                }
+
+                System.out.println("Details:\n" + pessoas.get(index));
                 break;
             case 3: // Consultar Data de Nascimento
                 break;
             case 4: // Carregar arquivo
+                loadCSV(cpfTree, nomeTree, nascTree, pessoas);
                 break;
             case 5: // Help
                 break;
@@ -60,140 +135,50 @@ public class Main {
         scanner.close();
     }
 
-    /*
-    private static <T extends Comparable<T>> void interactWithTree(
-        Scanner scanner,
-        Text text
+    public static void loadCSV(
+        AVLTreeGeneric<Pair<Integer, Long>> cpfTree,
+        AVLTreeGeneric<Pair<Integer, String>> nomeTree,
+        AVLTreeGeneric<Pair<Integer, String>> nascTree,
+        ArrayList<Pessoa> pessoas
     ) {
+        try {
+            int i = 0;
+            Set<Long> cpfSet = new HashSet<>();
+            String line = "";
+            BufferedReader reader = new BufferedReader(new FileReader("test1.csv"));
+            while((line = reader.readLine()) != null) {
+                String[] values = line.split(",");
+                
+                long cpf = Long.parseLong(values[0]);
 
-    }
-    */
+                if (!cpfSet.contains(cpf)) {
+                    cpfSet.add(cpf);
 
-    public static <T extends Comparable<T>> void massInsertNumbers(
-        Text text,
-        AVLTreePessoa<T> tree,
-        Class<T> type
-    ) {
+                    Pair<Integer, Long> cpfPair = new Pair<>(i, cpf);
+                    cpfTree.insert(cpfPair);
 
-        T valueToBeInserted = null;
-        System.out.print("Start the insertion at what number> ");
-        int startNumber = text.getInt();
-        System.out.print("Max number to stop insertions> ");
-        int endNumber = text.getInt();
-        int intervals = 0;
-        while (intervals <= 0) {
-            System.out.print("Intervals in numbers of> ");
-            intervals = text.getInt();
-            if (intervals <= 0) {
-                System.out.println("Intervals can't be <= 0.");
+                    long rg = Long.parseLong(values[1]);
+                    
+                    String nome = values[2];
+                    Pair<Integer, String> nomePair = new Pair<>(i, nome);
+                    nomeTree.insert(nomePair);
+
+                    String nasc = values[3];
+                    Pair<Integer, String> nascPair = new Pair<>(i, nasc);
+                    nascTree.insert(nascPair);
+
+                    String cidade = values[4];
+
+                    Pessoa pessoa = new Pessoa(cpf, rg, nome, nasc, cidade);
+                    pessoas.add(pessoa);
+                    i++;
+                } else {
+                    System.out.println("CPF already exists on CSV.");
+                }
             }
+            reader.close();
+        } catch(Exception e) {
+            e.printStackTrace();
         }
-        System.out.println(
-            "Inserting " + startNumber +
-            " to " + endNumber +
-            " in intervals of " + intervals + "."
-        );
-        for (int i = startNumber; i <= endNumber; i = i + intervals) {
-            valueToBeInserted = text.parseValue(String.valueOf(i), type);
-            tree.insert(valueToBeInserted);
-        }
-    }
-
-    public static <T extends Comparable<T>> void massInsertChar(
-        Text text,
-        AVLTreePessoa<T> tree,
-        Class<T> type
-    ) {
-        T valueToBeInserted = null;
-
-        System.out.print(
-                "Insert:\n" +
-                        "1 - Uppercase.\n" +
-                        "2 - Lowercase.\n");
-        int opt = text.getUserOption((short) 1, (short) 2);
-        if (opt == 1) {
-            for (int asciiValue = 65; asciiValue < 91; asciiValue++) {
-                char asciiChar = (char) asciiValue;
-                valueToBeInserted = text.parseValue(String.valueOf(asciiChar), type);
-                tree.insert(valueToBeInserted);
-            }
-        } else if (opt == 2) {
-            for (int asciiValue = 97; asciiValue < 123; asciiValue++) {
-                char asciiChar = (char) asciiValue;
-                valueToBeInserted = text.parseValue(String.valueOf(asciiChar), type);
-                tree.insert(valueToBeInserted);
-            }
-        }
-    }
-
-    public static <T extends Comparable<T>> void massInsertWords(
-        Text text,
-        AVLTreePessoa<T> tree,
-        Class<T> type,
-        Scanner scanner
-    ) {
-        if (!String.class.isAssignableFrom(type)) {
-            System.out.println("Only String Trees are accepted for this operation.");
-            return;
-        }
-
-        String path;
-
-        System.out.println(
-            "Load 274926 English words?\n" +
-            "1 - Yes (this is not a fast operation).\n" +
-            "2 - No (will load the words that starts with a and b).\n" +
-            "3 - Load a file of words (must be separated by new lines).\n" +
-            "4 - Cancel."
-        );
-
-        int opt = text.getUserOption((short) 1, (short) 4);
-
-        if (opt == 1) {
-            path = "all_words_less.txt";
-        } else if (opt == 2) {
-            path = "a_b_english.txt";
-        } else if (opt == 3) {
-            System.out.print("File name> ");
-            path = scanner.nextLine();
-        } else {
-            return;
-        }
-
-        long startTime = System.nanoTime();
-
-        try (Stream<String> lines = Files.lines(Paths.get(path))) {
-            lines.forEach(word -> tree.insert((T) word));
-        } catch (Exception e) {
-            System.out.println("File not found or unable to read file.");
-        }
-        /*
-         * try (BufferedReader bf = new BufferedReader(new FileReader("enw.txt"))) {
-         * long startTime = System.nanoTime();
-         * String word;
-         * while ((word = bf.readLine()) != null) {
-         * tree.insert((T) word);
-         * }
-         * } catch (Exception e) {
-         * System.out.println("File not found.");
-         * }
-         */
-        // unacceptable performance with scanner
-        /*
-         * try (Scanner sc = new Scanner(new File("words.txt"))) {
-         * long startTime = System.nanoTime();
-         * sc.useDelimiter("(\\n)");
-         * while(sc.hasNext()) {
-         * String word = sc.next();
-         * if (word.length() > 0) {
-         * tree.insert((T) word);
-         * }
-         * }
-         * } catch (Exception e) {
-         * System.out.println("File not found.");
-         * }
-         */
-        long endTime = System.nanoTime();
-        System.out.println("Duration: " + ((endTime - startTime) / 1000000) + "ms");
     }
 }
