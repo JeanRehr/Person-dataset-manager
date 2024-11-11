@@ -14,7 +14,7 @@ class Node<T> {
     }
 }
 
-public class AVLTreePessoa<T extends Comparable<T>> {
+public class AVLTreeGeneric<T extends Comparable<T>> {
     Node<T> root;  // The root node of the tree
 
     public int getHeight(Node<T> node) {
@@ -135,7 +135,7 @@ public class AVLTreePessoa<T extends Comparable<T>> {
         return node == null ? true : false;
     }
 
-    public boolean treeIsEmpty(AVLTreePessoa<T> tree) {
+    public boolean treeIsEmpty(AVLTreeGeneric<T> tree) {
         return tree.getRoot() == null ? true : false;
     }
 
@@ -307,6 +307,85 @@ public class AVLTreePessoa<T extends Comparable<T>> {
             }
         }
         return node;
+    }
+
+    /*
+     * Methods for Nodes of type Pair, where Key is an index of an array (can be generic)
+     * and the value can be of type generic
+    */
+
+    /*
+    public boolean searchByValue(V value) {
+        return searchByValueRec(root, value);
+    }
+
+    private boolean searchByValueRec(Node<Pair<K, V>> node, V value) {
+        if (node == null) {
+            return false;
+        }
+
+        if (node.data.getValue().compareTo(value) == 0) {
+            return true;
+        } else {
+            boolean leftResult = searchByValueRec(node.left, value);
+            if (leftResult) {
+                return true;
+            }
+            return searchByValueRec(node.right, value);
+        }
+    }
+    */
+
+    public <K, V extends Comparable<V>> boolean searchByValue(V value) {
+        return searchByValueRec(root, value);
+    }
+
+    private <K, V extends Comparable<V>> boolean searchByValueRec(Node<T> node, V value) {
+        if (node == null) {
+            return false;
+        }
+
+        // Cast node.data to a Pair<K, V>
+        Pair<K, V> pairData = (Pair<K, V>) node.data;
+
+        if (pairData.getValue().compareTo(value) == 0) {
+            return true;
+        } else {
+            boolean leftResult = searchByValueRec(node.left, value);
+            if (leftResult) {
+                return true;
+            }
+            return searchByValueRec(node.right, value);
+        }
+    }
+
+    public <K, V extends Comparable<V>> int getKeyBasedOnValue(V value) {
+        return getKeyBasedOnValue(root, value);
+    }
+
+    private <K, V extends Comparable<V>> int getKeyBasedOnValue(Node<T> node, V value) {
+        if (node == null) {
+            return -1;
+        }
+
+        // Cast node.data to a Pair<K, V>
+        Pair<K, V> pairData = (Pair<K, V>) node.data;
+
+        /*
+         * For this implementation's purpose, key is GUARANTEED to be of type lointng
+         * as it is an index of an ArrayList, hence the cast
+         * but it can be generic
+         */
+        if (pairData.getValue().compareTo(value) == 0) {
+            return (int) pairData.getKey();
+        }
+
+        int leftResult = getKeyBasedOnValue(node.left, value);
+        if (leftResult != -1) {
+            return leftResult;
+        }
+
+        return getKeyBasedOnValue(node.right, value);
     }
 
     public void insert(T data) {
@@ -515,11 +594,8 @@ public class AVLTreePessoa<T extends Comparable<T>> {
         }
     }
 
-    // Will return a subtree that matches with a given prefix, or null if tree is not of type str
-    public Node<String> prefixMatch(String data, Class<T> type) {
-        if (!String.class.isAssignableFrom(type)) {
-            return null;
-        }
+    // Will return a subtree that matches with a given prefix, works only on Nodes of type String
+    public Node<String> prefixMatch(String data) {
         return prefixMatch((Node<String>) root, data);
     }
 
