@@ -64,6 +64,14 @@ public class Text {
         return scanner.nextInt();
     }
 
+    public long getLong() {
+        while (!scanner.hasNextLong()) {
+            System.out.print("Invalid number.\n> ");
+            scanner.next();
+        }
+        return scanner.nextLong();
+    }
+
     public short getShort() {
         while (!scanner.hasNextShort()) {
             System.out.print("Invalid number.\n> ");
