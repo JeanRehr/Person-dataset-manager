@@ -1,7 +1,11 @@
 import java.util.Scanner;
 
-public class Text {
-    Scanner scanner = new Scanner(System.in);
+public class ConsoleHandler {
+    private final Scanner scanner;
+
+    public ConsoleHandler(Scanner scanner) {
+        this.scanner = scanner;
+    }
 
     public void clearConsole() {
         /* ANSI CODE */
@@ -14,15 +18,13 @@ public class Text {
 
     public void options() {
         System.out.print(
-            "-------------------------------------------------\n" +
-            "Opções: [1] Consultar CPF.\n" +
-            "        [2] Consultar Nome.\n" +
-            "        [3] Consultar Data de Nascimento.\n" +
-            "        [4] Carregar arquivo.\n" +
-            "        [5] Help.\n" +
-            "        [6] Exit.\n" +
-            "        [7] Clear screen.\n" +
-            "-------------------------------------------------\n"
+            "--------------------------------------------------\n" +
+            "Opções: [1] Consult CPF.       [6] Help.\n" +
+            "        [2] Consult Name.      [7] Clear screen.\n" +
+            "        [3] Consult Birthdate. [8] Print.\n" +
+            "        [4] Load file.         [9] Exit.\n" +
+            "        [5] Delete.\n" +
+            "--------------------------------------------------\n"
         );
     }
 
@@ -81,7 +83,6 @@ public class Text {
     }
 
     public short getUserOption(short low, short high) {
-        System.out.print("Option> ");
         short userOpt = getShort();
         while (userOpt > high || userOpt < low) {
             System.out.print("Invalid option.\n> ");
