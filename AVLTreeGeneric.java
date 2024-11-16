@@ -1,5 +1,7 @@
 import java.util.ArrayList;
 import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 class Node<T> {
     T data;
@@ -16,6 +18,14 @@ class Node<T> {
 
 public class AVLTreeGeneric<T extends Comparable<T>> {
     Node<T> root;  // The root node of the tree
+    /*
+    private Comparator<? super T> comparator;
+
+    // For comparing different key and values in a Pair tree
+    public AVLTreeGeneric(Comparator<? super T> comparator) {
+        this.comparator = comparator;
+    }
+    */
 
     public int getHeight(Node<T> node) {
         if (node == null) {
@@ -208,12 +218,7 @@ public class AVLTreeGeneric<T extends Comparable<T>> {
                 System.out.print("    ");
             }
 
-            // Print node data, its height, balance factor, and parent
-            System.out.println(
-                node.data + " Height: " + getHeight(node) +
-                " Balance Factor: " + getBalanceFactor(node) +
-                " Parent: " + ((node.parent == null) ? "null" : node.parent.data)
-            );
+            System.out.println(node.data);
 
             int nextLevel = level + 1;
 
@@ -309,88 +314,8 @@ public class AVLTreeGeneric<T extends Comparable<T>> {
         return node;
     }
 
-    /*
-     * Methods for Nodes of type Pair, where Key is an index of an array (can be generic)
-     * and the value can be of type generic
-    */
-
-    /*
-    public boolean searchByValue(V value) {
-        return searchByValueRec(root, value);
-    }
-
-    private boolean searchByValueRec(Node<Pair<K, V>> node, V value) {
-        if (node == null) {
-            return false;
-        }
-
-        if (node.data.getValue().compareTo(value) == 0) {
-            return true;
-        } else {
-            boolean leftResult = searchByValueRec(node.left, value);
-            if (leftResult) {
-                return true;
-            }
-            return searchByValueRec(node.right, value);
-        }
-    }
-    */
-
-    public <K, V extends Comparable<V>> boolean searchByValue(V value) {
-        return searchByValueRec(root, value);
-    }
-
-    private <K, V extends Comparable<V>> boolean searchByValueRec(Node<T> node, V value) {
-        if (node == null) {
-            return false;
-        }
-
-        // Cast node.data to a Pair<K, V>
-        Pair<K, V> pairData = (Pair<K, V>) node.data;
-
-        if (pairData.getValue().compareTo(value) == 0) {
-            return true;
-        } else {
-            boolean leftResult = searchByValueRec(node.left, value);
-            if (leftResult) {
-                return true;
-            }
-            return searchByValueRec(node.right, value);
-        }
-    }
-
-    public <K, V extends Comparable<V>> int getKeyBasedOnValue(V value) {
-        return getKeyBasedOnValue(root, value);
-    }
-
-    private <K, V extends Comparable<V>> int getKeyBasedOnValue(Node<T> node, V value) {
-        if (node == null) {
-            return -1;
-        }
-
-        // Cast node.data to a Pair<K, V>
-        Pair<K, V> pairData = (Pair<K, V>) node.data;
-
-        /*
-         * For this implementation's purpose, key is GUARANTEED to be of type lointng
-         * as it is an index of an ArrayList, hence the cast
-         * but it can be generic
-         */
-        if (pairData.getValue().compareTo(value) == 0) {
-            return (int) pairData.getKey();
-        }
-
-        int leftResult = getKeyBasedOnValue(node.left, value);
-        if (leftResult != -1) {
-            return leftResult;
-        }
-
-        return getKeyBasedOnValue(node.right, value);
-    }
-
     public void insert(T data) {
         root = insertRec(root, data, null);
-        //insertIter(data);
     }
 
     private Node<T> insertRec(Node<T> node, T data, Node<T> parent) {
@@ -596,10 +521,10 @@ public class AVLTreeGeneric<T extends Comparable<T>> {
 
     // Will return a subtree that matches with a given prefix, works only on Nodes of type String
     public Node<String> prefixMatch(String data) {
-        return prefixMatch((Node<String>) root, data);
+        return prefixMatchRec((Node<String>) root, data);
     }
 
-    public Node<String> prefixMatch(Node<String> node, String data) {
+    public Node<String> prefixMatchRec(Node<String> node, String data) {
         if (node == null) {
             return null;
         }
@@ -611,9 +536,9 @@ public class AVLTreeGeneric<T extends Comparable<T>> {
         }
 
         if (data.compareTo(nodeDataSubstring) < 0) {
-            return prefixMatch(node.left, data);
+            return prefixMatchRec(node.left, data);
         } else {
-            return prefixMatch(node.right, data);
+            return prefixMatchRec(node.right, data);
         }
     }
 
@@ -781,5 +706,220 @@ public class AVLTreeGeneric<T extends Comparable<T>> {
         if (newRoot != null) {
             newRoot.parent = toBeTransplanted.parent;
         }
+    }
+
+    /*
+     * Methods for Nodes of type Pair, where Key is an index of an array (int, but can be generic)
+     * and the value is of type generic
+     * Key can be duplicate (it will not be duplicate because of implementation), value can be
+     * duplicate depending on the type of tree and the insert function used.
+     * The value used to check for duplicates on Pair trees is the value of the pair, not the key
+     */
+
+    public <K, V extends Comparable<V>> boolean searchByValue(V value) {
+        return searchByValueRec(root, value);
+    }
+
+    private <K, V extends Comparable<V>> boolean searchByValueRec(Node<T> node, V value) {
+        if (node == null) {
+            return false;
+        }
+
+        // Cast node.data to a Pair<K, V>
+        Pair<K, V> pairData = (Pair<K, V>) node.data;
+
+        if (pairData.getValue().compareTo(value) == 0) {
+            return true;
+        } else {
+            boolean leftResult = searchByValueRec(node.left, value);
+            if (leftResult) {
+                return true;
+            }
+            return searchByValueRec(node.right, value);
+        }
+    }
+    
+    public void insertDupAllow(T data) {
+        root = insertDupAllowRec(root, data, null);
+    }
+
+    // Insert allowing duplicates
+    private Node<T> insertDupAllowRec(Node<T> node, T data, Node<T> parent) {
+        // If the tree/subtree is empty, create a new node
+        if (node == null) {
+            Node<T> newNode = new Node<>(data);
+            newNode.parent = parent;
+            return newNode;
+        }
+
+        int cmp = data.compareTo(node.data);
+
+        if (cmp < 0) {
+            node.left = insertDupAllowRec(node.left, data, node);
+        } else { // only else to allow for duplicates, they will always be inserted right
+            node.right = insertDupAllowRec(node.right, data, node);
+        }
+
+        setHeight(node);
+        return rebalance(node);
+    }
+
+    /*
+     * This method will return the first encountered value, thus not work with trees that allow
+     * duplicates, use the method getKeyByValueDup for trees that allows duplicates
+     */
+    public <K, V extends Comparable<V>> int getKeyByValue(V value) {
+        return getKeyByValueRec(root, value);
+    }
+
+    private <K, V extends Comparable<V>> int getKeyByValueRec(Node<T> node, V value) {
+        if (node == null) {
+            return -1;
+        }
+
+        // Cast node.data to a Pair<K, V>
+        Pair<K, V> pairData = (Pair<K, V>) node.data;
+
+        /*
+         * For this implementation's purpose, key is GUARANTEED to be of type int
+         * as it is an index of an ArrayList, hence the cast, but it can be generic
+         */
+        if (pairData.getValue().compareTo(value) == 0) {
+            return (int) pairData.getKey();
+        }
+
+        int leftResult = getKeyByValueRec(node.left, value);
+        if (leftResult != -1) {
+            return leftResult;
+        }
+
+        return getKeyByValueRec(node.right, value);
+    }
+
+    /*
+     * These two methods will run throughout all the tree
+     * but will return all values even if there are duplicates
+     * this will return a set, because of the rerun on the trees
+     * it will also return duplicates indices, a set will not allow this to happen
+     */
+    public <K, V extends Comparable<V>> Set<Integer> getKeyByValueDup(V value) {
+        Set<Integer> keys = new HashSet<>();
+        getKeyByValueDupRec(root, value, keys);
+        return keys;
+    }
+
+    public <K, V extends Comparable<V>> void getKeyByValueDupRec(
+        Node<T> node,
+        V value,
+        Set<Integer> keys
+    ) {
+        if (node == null) {
+            return;
+        }
+
+        // Cast node.data to a Pair<K, V>
+        Pair<K, V> pairData = (Pair<K, V>) node.data;
+
+        int comparasionResult = pairData.getValue().compareTo(value);
+
+        if (comparasionResult == 0) {
+            keys.add((Integer) pairData.getKey());
+        }
+
+        getKeyByValueDupRec(node.left, value, keys);
+        getKeyByValueDupRec(node.right, value, keys);
+    }
+
+    // prefixMatch to work on Pairs
+    public <K, V extends Comparable<V>> ArrayList<String> prefixMatchPair(String prefix) {
+        ArrayList<String> matchedNodesValue = new ArrayList<>();
+
+        // explicit cast of a Pair node
+        prefixMatchPairRec((Node<Pair<K, V>>) root, prefix, matchedNodesValue);
+
+        return matchedNodesValue;
+    }
+
+    private <K, V extends Comparable<V>> void prefixMatchPairRec(
+        Node<Pair<K, V>> node,
+        String prefix,
+        ArrayList<String> matchedNodesValue
+    ) {
+        if (node == null) {
+            return;
+        }
+
+        Pair<K, V> pair = (Pair<K, V>) node.data;
+
+        // Assume Pair<V> is a String
+        String nodeValue = (String) pair.getValue();
+
+        if (nodeValue.startsWith(prefix)) {
+            matchedNodesValue.add(nodeValue);
+        }
+
+        prefixMatchPairRec(node.left, prefix, matchedNodesValue);
+        prefixMatchPairRec(node.right, prefix, matchedNodesValue);
+    }
+
+    public <K, V extends Comparable<V>> Set<Integer> getKeyOfAllLongsBetween(long low, long high) {
+        Set<Integer> keys = new HashSet<>();
+        getKeyOfAllLongsBetweenRec(low, high, (Node<Pair<K, V>>) root, keys);
+        return keys;
+    }
+
+    private <K, V extends Comparable<V>> void getKeyOfAllLongsBetweenRec(
+        long low,
+        long high,
+        Node<Pair<K, V>> node,
+        Set<Integer> keys
+    ) {
+        if (node == null) {
+            return;
+        }
+
+        Pair<K, V> pair = (Pair<K, V>) node.data;
+
+        long nodeValue = (Long) pair.getValue();
+
+        /*
+        if (-376012800000L <= 31651084800000L && 31651084800000L <= 31651084800000L) {
+            System.out.println("TESTING TESTING TESTING TESTING");
+        }
+        */
+    
+        if (nodeValue >= low) {
+            getKeyOfAllLongsBetweenRec(low, high, node.left, keys);
+        }
+
+        // add the current node key if it is within range
+        if (low <= nodeValue && nodeValue <= high) {
+            keys.add((Integer) pair.getKey());
+        }
+
+        if (nodeValue <= high) {
+            getKeyOfAllLongsBetweenRec(low, high, node.right, keys);
+        }
+    }
+
+    public <K, V extends Comparable<V>> void updateKeyOfValue(K key, V value) {
+        updateKeyOfValueRec((Node<Pair<K, V>>)root, key, value);
+    }
+
+    public <K, V extends Comparable<V>> void updateKeyOfValueRec(Node<Pair<K, V>> node, K key, V value) {
+        if (node == null) {
+            return;
+        }
+
+        Pair<K, V> pairData = (Pair<K, V>) node.data;
+
+        int comparasionResult = pairData.getValue().compareTo(value);
+
+        if (comparasionResult == 0) {
+            node.data.setKey(key);
+        }
+
+        updateKeyOfValueRec(node.left, key, value);
+        updateKeyOfValueRec(node.right, key, value);
     }
 }
