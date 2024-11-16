@@ -1,6 +1,7 @@
 import java.util.Scanner;
 import java.io.FileReader;
 import java.io.BufferedReader;
+import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -48,7 +49,7 @@ public class Main {
 
             System.out.print("Option> ");
             userOpt = consoleHandler.getUserOption((short) 1, (short) 9);
-
+            scanner.nextLine(); // Consuming \n
             switch (userOpt) {
             case 1: // Consultar CPF
                 System.out.print("Enter CPF to search> ");
@@ -119,13 +120,23 @@ public class Main {
 
                 //System.out.println("Details:\n" + persons.get(index));
                 break;
-            case 3: // Consultar Data de Nascimento                
-                System.out.print("Date of birth to search from> ");
+            case 3: // Consultar Data de Nascimento             
                 String input = null;
-                LocalDate firstDateObj = getInputDate(input, dateFormat, scanner);
+                LocalDate firstDateObj = null; 
+                while (firstDateObj == null) {
+                    System.out.print("Date of birth to search from> ");
+                    input = scanner.nextLine();
+                    System.out.println(input);
+                    firstDateObj = DateUtils.parseDateInput(input, dateFormat);
+                }
+                    
 
-                System.out.print("Date of birth to search to> ");
-                LocalDate lastDateObj = getInputDate(input, dateFormat, scanner);
+                LocalDate lastDateObj = null;
+                while (lastDateObj == null) {
+                    System.out.print("Date of birth to search to> ");
+                    input = scanner.nextLine();
+                    lastDateObj = DateUtils.parseDateInput(input, dateFormat);
+                }
                 
                 long firstDateInputLong = firstDateObj
                     .atStartOfDay(ZoneId.of("UTC"))
@@ -200,7 +211,7 @@ public class Main {
                 // delete
                 persons.remove(indexDel);
 
-                LocalDate birthDateDel = parseDateInput(stringBirthDateDel, dateFormat);
+                LocalDate birthDateDel = DateUtils.parseDateInput(stringBirthDateDel, dateFormat);
 
                 long birthDateUnixEpochDel = birthDateDel
                     .atStartOfDay(ZoneId.of("UTC"))
@@ -228,7 +239,7 @@ public class Main {
                     nameTree.updateKeyOfValue(currentPos, person.getName());
                     String birthDateUpd = person.getBirthDate();
 
-                    LocalDate birthDatePersonUpd = parseDateInput(birthDateUpd, dateFormat);
+                    LocalDate birthDatePersonUpd = DateUtils.parseDateInput(birthDateUpd, dateFormat);
 
                     long birthDateUnixEpochUpd = birthDatePersonUpd
                         .atStartOfDay(ZoneId.of("UTC"))
@@ -293,7 +304,7 @@ public class Main {
 
                     String birthDate = person.getBirthDate();
 
-                    LocalDate birthDatePerson = parseDateInput(birthDate, dateFormat);
+                    LocalDate birthDatePerson = DateUtils.parseDateInput(birthDate, dateFormat);
 
                     long birthDateUnixEpoch = birthDatePerson
                         .atStartOfDay(ZoneId.of("UTC"))
@@ -362,14 +373,13 @@ public class Main {
         Set<Long> cpfSet,
         Scanner scanner
     ) {
-        try {
-            System.out.print("CSV file name> ");
-            String filePath = scanner.nextLine();
-            BufferedReader reader = new BufferedReader(new FileReader(filePath));
+        System.out.print("CSV file name> ");
+        String filePath = scanner.nextLine();
 
-            System.out.print("CSV value separator> ");
-            String separator = scanner.nextLine();
+        System.out.print("CSV value separator> ");
+        String separator = scanner.nextLine();
 
+        try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
             String line = "";
             
             /* 
@@ -410,7 +420,7 @@ public class Main {
                 String birthDate = values[3];
 
                 DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-                LocalDate birthDatePerson = parseDateInput(birthDate, dateFormat);
+                LocalDate birthDatePerson = DateUtils.parseDateInput(birthDate, dateFormat);
                 
                 // Birthdates are transformed to unix epoch longs, to be easier
                 // to compare and balance
@@ -428,36 +438,8 @@ public class Main {
                 persons.add(person);
                 i++;
             }
-            reader.close();
         } catch(Exception e) {
             e.printStackTrace();
         }
-    }
-
-    public static LocalDate getInputDate(String input, DateTimeFormatter dateFormat, Scanner scanner) {
-        LocalDate dateObj = null;
-
-        while (dateObj == null) {
-            input = scanner.nextLine();
-            dateObj = parseDateInput(input, dateFormat);
-            if (dateObj == null) {
-                System.out.print("Date> ");
-            }
-        }
-
-        return dateObj;
-    }
-    
-    // Returns null if input is in the wrong format
-    public static LocalDate parseDateInput(String input, DateTimeFormatter dateFormat) {
-        LocalDate dateObj = null;
-
-        try {
-            dateObj = LocalDate.parse(input, dateFormat);
-        } catch (DateTimeParseException e) {
-            System.out.println("Wrong format. Correct format is: " + dateFormat.toString());
-        }
-
-        return dateObj;
     }
 }
