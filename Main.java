@@ -1,384 +1,406 @@
+package gb;
+
+/*
+ * Program made by Jean Rehr
+ */
+
 import java.util.Scanner;
+import java.io.File;
 import java.io.FileReader;
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.io.FileNotFoundException;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Set;
 import java.util.HashSet;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import java.time.ZoneOffset;
 import java.time.ZoneId;
 
-/*
- * Load file of people's data, put them in an array/list
- * create a pair tree for each data (cpf, name, birthdate)
- * key being the index of the array where a particular object is
- */
+import static gb.Constants.*;
 
 public class Main {
     public static void main(String[] args) {
-        // load csv file first, create an array of objects
-        // cpf, rg, name, birthdate, city
         Scanner scanner = new Scanner(System.in);
-
-        ArrayList<Person> persons = new ArrayList<Person>();
+        List<Person> persons = new ArrayList<>();
         Set<Long> cpfSet = new HashSet<>(); // Keep track of CPFs already added on the program
         AVLTreeGeneric<Pair<Integer, Long>> cpfTree = new AVLTreeGeneric<>();
         AVLTreeGeneric<Pair<Integer, String>> nameTree = new AVLTreeGeneric<>();
         AVLTreeGeneric<Pair<Integer, Long>> birthDateTree = new AVLTreeGeneric<>();
 
-        // Defining date format here as it is always the same throughout the program
-        DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-
-        loadCSV(cpfTree, nameTree, birthDateTree, persons, cpfSet, scanner);
-
-        // testing
-        //for (Person person : persons) {
-        //    System.out.println(person);
-        //}
-
-        short userOpt = 100;
-
         ConsoleHandler consoleHandler = new ConsoleHandler(scanner);
-        while (userOpt != 9) {
-            int index = -1;
-            consoleHandler.options();
 
+        String[] mainMenuItems = {
+            "Consult by.",
+            "Load.",
+            "Update or add.",
+            "Save to csv file.",
+            "Delete.",
+            "Print.",
+            "Help.",
+            "Clear console.",
+            "Exit."
+        };
+
+        while (true) {
+            consoleHandler.displayMenu("Main Menu", mainMenuItems);
             System.out.print("Option> ");
-            userOpt = consoleHandler.getUserOption((short) 1, (short) 9);
-            scanner.nextLine(); // Consuming \n
-            switch (userOpt) {
-            case 1: // Consultar CPF
-                System.out.print("Enter CPF to search> ");
-                long cpfSearch = consoleHandler.getLong();
-
-                index = cpfTree.getKeyByValue(cpfSearch);
-
-                if (index == -1) {
-                    System.out.println("Non-existent CPF.");
-                    break;
-                }
-
-                System.out.println("Details:\n" + persons.get(index));
-
-                break;
-            case 2: // Consultar Nome
-                System.out.print("Enter name to search> ");
-                String nameSearch = scanner.nextLine();
-
-                ArrayList<String> nodeValues = new ArrayList<>();
-
-                nodeValues = nameTree.prefixMatchPair(nameSearch);
-                //System.out.println(nodeValues);
-
-                // HashSet to not allow for duplicate key values
-                Set<Integer> indexesName = new HashSet<>();
-
-                for (String nodeValue : nodeValues) {
-                    Set<Integer> keys = nameTree.getKeyByValueDup(nodeValue);
-                    indexesName.addAll(keys);
-                }
-
-                if (indexesName.size() == 0) {
-                    System.out.println("No person with this name.");
-                    break;
-                }
-
-                //System.out.println(indexesName);
-
-                System.out.println("Details:");
-                for (int key : indexesName) {
-                    //System.out.println(key);
-                    System.out.println(persons.get(key) + "\n");
-                }
-                
-                /*
-                System.out.println("Details:");
-                for (String values : nodeValues) {
-                    index = nameTree.getKeyByValueDup(values);
-                    System.out.println("INDEX = " + index);
-                    if (index == -1) {
-                        System.out.println("Name non-existent");
-                        break;
-                    } 
-                    System.out.println(persons.get(index) + "\n");
-
-                }
-                */
-                
-                //nameTree.printTree(stringNode);
-
-                //index = nameTree.getKeyByValue(name);
-
-                //if (index == -1) {
-                //    System.out.print("Non-existent name.");
-                //    break;
-                //}
-
-                //System.out.println("Details:\n" + persons.get(index));
-                break;
-            case 3: // Consultar Data de Nascimento             
-                String input = null;
-                LocalDate firstDateObj = null; 
-                while (firstDateObj == null) {
-                    System.out.print("Date of birth to search from> ");
-                    input = scanner.nextLine();
-                    System.out.println(input);
-                    firstDateObj = DateUtils.parseDateInput(input, dateFormat);
-                }
-                    
-
-                LocalDate lastDateObj = null;
-                while (lastDateObj == null) {
-                    System.out.print("Date of birth to search to> ");
-                    input = scanner.nextLine();
-                    lastDateObj = DateUtils.parseDateInput(input, dateFormat);
-                }
-                
-                long firstDateInputLong = firstDateObj
-                    .atStartOfDay(ZoneId.of("UTC"))
-                    .toInstant()
-                    .toEpochMilli();
-
-                long lastDateInputLong = lastDateObj
-                    .atStartOfDay(ZoneId.of("UTC"))
-                    .toInstant()
-                    .toEpochMilli();
-
-                //System.out.println(firstDateInputLong + "\n" + lastDateInputLong);
-
-                //Set<Integer> indexesBirth = birthDateTree.getKeyOfAllLongsBetween(firstDateInputLong, firstDateInputLong);
-                
-                Set<Integer> indexesBirth = 
-                    birthDateTree.getKeyOfAllLongsBetween(firstDateInputLong, lastDateInputLong);
-
-                if (indexesBirth.size() == 0) {
-                    System.out.println("No birth dates between these two dates.");
-                    break;
-                }
-
-                System.out.println("Details:");
-                for (int key : indexesBirth) {
-                    //System.out.println(key);
-                    System.out.println(persons.get(key) + "\n");
-                }
-
-                break;
-            case 4: // Carregar arquivo
-                loadCSV(cpfTree, nameTree, birthDateTree, persons, cpfSet, scanner);
-                break;
-            case 5: // Delete
-                long cpfDel = 0;
-                String cpfStringDel = null;
-                while (cpfStringDel == null) {
-                    System.out.print("CPF to delete> ");
-                    cpfStringDel = scanner.nextLine();
-                    try {
-                        cpfDel = Long.parseLong(cpfStringDel);
-                    } catch (Exception e) {
-                        cpfStringDel = null;
-                        System.out.println("Only numbers for CPF.");
-                    }
-                }
-
-                long startTime = System.nanoTime();
-
-                int indexDel = -1;
-                int currentPos = 0;
-
-                String stringBirthDateDel = null;
-                String nameDel = null;
-
-                // find and store the variables to delete
-                for (Person person : persons) {
-                    if (cpfStringDel.equals(person.getCpf())) {
-                        indexDel = currentPos;
-                        stringBirthDateDel = person.getBirthDate();
-                        nameDel = person.getName();
-                        break;
-                    }
-                    currentPos++;
-                }
-
-                if (indexDel == -1) {
-                    System.out.println("CPF doesn't exist.");
-                    break;
-                }
-
-                // delete
-                persons.remove(indexDel);
-
-                LocalDate birthDateDel = DateUtils.parseDateInput(stringBirthDateDel, dateFormat);
-
-                long birthDateUnixEpochDel = birthDateDel
-                    .atStartOfDay(ZoneId.of("UTC"))
-                    .toInstant()
-                    .toEpochMilli();
-
-                // Delete the vars birthDateUnixEpochDel, cpfDel, nameDel from the trees
-                // with key indexDel
-                Pair<Integer, Long> cpfPairDel = new Pair<>(indexDel, cpfDel);
-                cpfTree.remove(cpfPairDel);
-
-                Pair<Integer, String> namePairDel = new Pair<>(indexDel, nameDel);
-                nameTree.remove(namePairDel);
-
-                Pair<Integer, Long> birthDatePairDel = new Pair<>(indexDel, birthDateUnixEpochDel);
-                birthDateTree.remove(birthDatePairDel);
-
-                // Once the key/value is removed from the tree, we update the key on the rest of
-                // the key value pair on the trees based on the index of the arraylist.
-                
-                currentPos = 0;
-                for (Person person : persons) {
-                    //System.out.println("INDEX: " + currentPos + " CPF: " + person.getCpf());
-                    cpfTree.updateKeyOfValue(currentPos, Long.parseLong(person.getCpf()));
-                    nameTree.updateKeyOfValue(currentPos, person.getName());
-                    String birthDateUpd = person.getBirthDate();
-
-                    LocalDate birthDatePersonUpd = DateUtils.parseDateInput(birthDateUpd, dateFormat);
-
-                    long birthDateUnixEpochUpd = birthDatePersonUpd
-                        .atStartOfDay(ZoneId.of("UTC"))
-                        .toInstant()
-                        .toEpochMilli();
-                    
-                    birthDateTree.updateKeyOfValue(currentPos, birthDateUnixEpochUpd);
-                    currentPos++;
-                }
-                
-                /*
-                long cpfDel = 0;
-                String cpfStringDel = null;
-                while (cpfStringDel == null) {
-                    System.out.print("CPF to delete> ");
-                    cpfStringDel = scanner.nextLine();
-                    try {
-                        cpfDel = Long.parseLong(cpfStringDel);
-                    } catch (Exception e) {
-                        cpfStringDel = null;
-                        System.out.println("Only numbers for CPF.");
-                    }
-                }
-
-                long startTime = System.nanoTime();
-
-                int indexDel = -1;
-                int currentPos = 0;
-
-                for (Person person : persons) {
-                    if (cpfStringDel.equals(person.getCpf())) {
-                        indexDel = currentPos;
-                        break;
-                    }
-                    currentPos++;
-                }
-
-                if (indexDel == -1) {
-                    System.out.println("CPF doesn't exist.");
-                    break;
-                }
-
-                // delete
-                persons.remove(indexDel);
-
-                // delete everything from the tree, as once something is deleted in the arraylist
-                // all the key values on the trees are wrong
-                cpfTree.massRemove(cpfTree.getRoot().data);
-                nameTree.massRemove(nameTree.getRoot().data);
-                birthDateTree.massRemove(birthDateTree.getRoot().data);
-
-                // insert everything again
-                currentPos = 0;
-                for (Person person : persons) {
-                    long cpfIns = Long.parseLong(person.getCpf());
-                    Pair<Integer, Long> cpfPair = new Pair<>(currentPos, cpfIns);
-                    cpfTree.insert(cpfPair);
-            
-                    String nameIns = person.getName();
-                    Pair<Integer, String> namePair = new Pair<>(currentPos, nameIns);
-                    nameTree.insertDupAllow(namePair);
-
-                    String birthDate = person.getBirthDate();
-
-                    LocalDate birthDatePerson = DateUtils.parseDateInput(birthDate, dateFormat);
-
-                    long birthDateUnixEpoch = birthDatePerson
-                        .atStartOfDay(ZoneId.of("UTC"))
-                        .toInstant()
-                        .toEpochMilli();
-
-                    Pair<Integer, Long> birthDatePair = new Pair<>(currentPos, birthDateUnixEpoch);
-                    birthDateTree.insertDupAllow(birthDatePair);
-                    currentPos++;
-                }
-                */
-
-                long endTime = System.nanoTime();
-                System.out.println("Duration: " + ((endTime - startTime) / 1000000) + "ms");
-                break;
-            case 6: // Help
-                System.out.println(
-                    "This program loads CSVs of data that has information about (no headers): \n" +
-                    "CPF,RG,Name,Birthdade,City.\n" +
-                    "Example: 01234567890,9876543210,Name Test,23/12/1988,Westford.\n" +
-                    "And does a fast search by CPF, Name prefixes, and range of birthdates."
-                );
-                break;
-            case 7: // Clear screen
-                consoleHandler.clearConsole();
-                break;
-            case 8: // Print tree
-                System.out.print(
-                    "Print:\n" +
-                    "1 - CPF tree.\n" +
-                    "2 - Name tree.\n" +
-                    "3 - Birthdate tree.\n" +
-                    "4 - Person ArrayList.\n"
-                );
-
-                System.out.print("Option> ");
-                short printWhichTree = consoleHandler.getUserOption((short) 1, (short) 4);
-
-                if (printWhichTree == 1) {
-                    cpfTree.printTree(cpfTree.getRoot());
-                } else if (printWhichTree == 2) {
-                    nameTree.printTree(nameTree.getRoot());
-                } else if (printWhichTree == 3) {
-                    birthDateTree.printTree(birthDateTree.getRoot());
-                } else if (printWhichTree == 4) {
-                    int sizeOfPersons = persons.size();
-                    for (int i = 0; i < sizeOfPersons; i++) {
-                        System.out.println("INDEX: " + i);
-                        System.out.println(persons.get(i));
-                    }
-                }
-
-                break;
-            case 9: // Exit
+            short userOpt = consoleHandler.getUserOption((short) 0, (short) mainMenuItems.length);
+            consoleHandler.getNextLine(); // Consuming \n
+            if (userOpt == 9) {
                 break;
             }
+            handleMainMenuOption(
+                userOpt,
+                cpfTree,
+                nameTree,
+                birthDateTree,
+                persons,
+                cpfSet,
+                consoleHandler,
+                DATE_FORMAT
+            );
         }
         scanner.close();
     }
 
-    public static void loadCSV(
+    private static void handleMainMenuOption(
+        short userOpt,
         AVLTreeGeneric<Pair<Integer, Long>> cpfTree,
         AVLTreeGeneric<Pair<Integer, String>> nameTree,
         AVLTreeGeneric<Pair<Integer, Long>> birthDateTree,
-        ArrayList<Person> persons,
+        List<Person> persons,
         Set<Long> cpfSet,
-        Scanner scanner
+        ConsoleHandler consoleHandler, 
+        DateTimeFormatter dateFormat
     ) {
-        System.out.print("CSV file name> ");
-        String filePath = scanner.nextLine();
+        switch (userOpt) {
+        case 1: // Consult
+            handleConsultMenuOptions(consoleHandler, cpfTree, nameTree, birthDateTree, persons, dateFormat);
+            break;
+        case 2: // Load
+            handleLoadMenuOptions(consoleHandler, cpfTree, nameTree, birthDateTree, persons, cpfSet, dateFormat);
+            break;
+        case 3: // Add or Update Person
+            inputAddOrUpdPerson(cpfTree, nameTree, birthDateTree, persons, cpfSet, dateFormat, consoleHandler);
+            break;
+        case 4: // Carregar arquivo
+            saveToFileInput(persons, consoleHandler);
+            break;
+        case 5: // Delete
+            handleDeleteMenuOptions(consoleHandler, cpfTree, nameTree, birthDateTree, persons, cpfSet, dateFormat);
+            break;
+        case 6: // Print
+            handlePrintMenuOptions(consoleHandler, cpfTree, nameTree, birthDateTree, persons, cpfSet);
+            break;
+        case 7: // Help
+            consoleHandler.displayHelp();
+            break;
+        case 8: // Clear console
+            consoleHandler.clearConsole();
+            break;
+        case 9: // Exit
+            break;
+        };
+    }
+    
+    private static void handleConsultMenuOptions(
+        ConsoleHandler consoleHandler,
+        AVLTreeGeneric<Pair<Integer, Long>> cpfTree,
+        AVLTreeGeneric<Pair<Integer, String>> nameTree,
+        AVLTreeGeneric<Pair<Integer, Long>> birthDateTree,
+        List<Person> persons,
+        DateTimeFormatter dateFormat
+    ) {
+        if (persons.isEmpty()) {
+            System.out.println(RED + "Program is empty." + RESET);
+            return;
+        }
 
-        System.out.print("CSV value separator> ");
-        String separator = scanner.nextLine();
+        String[] consultMenuItems = {
+            "Consult by CPF.",
+            "Consult by name.",
+            "Consult by birthdate range.",
+            "Cancel."
+        };
 
+        consoleHandler.displayMenu("Consult Menu", consultMenuItems);
+        System.out.print("Option> ");
+        short userOpt = consoleHandler.getUserOption((short) 1, (short) consultMenuItems.length);
+        consoleHandler.getNextLine(); // Consuming \n
+
+        switch (userOpt) {
+        case 1:
+            consultCpf(cpfTree, persons, consoleHandler);
+            break;
+        case 2:
+            consultName(nameTree, persons, consoleHandler);
+            break;
+        case 3:
+            consultBirthdate(birthDateTree, persons, dateFormat, consoleHandler);
+            break;
+        case 4:
+            break;
+        }
+    }
+
+    private static void handleLoadMenuOptions(
+        ConsoleHandler consoleHandler,
+        AVLTreeGeneric<Pair<Integer, Long>> cpfTree,
+        AVLTreeGeneric<Pair<Integer, String>> nameTree,
+        AVLTreeGeneric<Pair<Integer, Long>> birthDateTree,
+        List<Person> persons,
+        Set<Long> cpfSet,
+        DateTimeFormatter dateFormat
+    ) {
+        String[] loadMenuItems = {
+            "Load a file name.",
+            "Load a directory.",
+            "Cancel."
+        };
+
+        consoleHandler.displayMenu("Load Menu", loadMenuItems);
+        System.out.print("Option> ");
+        short userOpt = consoleHandler.getUserOption((short) 1, (short) loadMenuItems.length);
+        consoleHandler.getNextLine(); // Consuming \n
+
+        switch (userOpt) {
+        case 1:
+            loadCsvFile(
+                cpfTree,
+                nameTree,
+                birthDateTree,
+                persons,
+                cpfSet,
+                dateFormat,
+                consoleHandler
+            );
+            break;
+        case 2:
+            loadFilesFromDirectory(
+                cpfTree,
+                nameTree,
+                birthDateTree,
+                persons,
+                cpfSet,
+                dateFormat,
+                consoleHandler
+            );
+            break;
+        case 3:
+            break;
+        }
+    }
+
+    private static void handleDeleteMenuOptions(
+        ConsoleHandler consoleHandler,
+        AVLTreeGeneric<Pair<Integer, Long>> cpfTree,
+        AVLTreeGeneric<Pair<Integer, String>> nameTree,
+        AVLTreeGeneric<Pair<Integer, Long>> birthDateTree,
+        List<Person> persons,
+        Set<Long> cpfSet,
+        DateTimeFormatter dateFormat
+    ) {
+        if (persons.isEmpty()) {
+            System.out.println(RED + "Program is empty." + RESET);
+            return;
+        }
+
+        String[] deletePersonMenuItems = {
+            "Delete person by CPF.",
+            "Delete everything.",
+            "Cancel."
+        };
+
+        consoleHandler.displayMenu("Delete Menu", deletePersonMenuItems);
+        System.out.print("Option> ");
+        short userOpt = consoleHandler.getUserOption((short) 1, (short) deletePersonMenuItems.length);
+        consoleHandler.getNextLine(); // Consuming \n
+
+        switch (userOpt) {
+        case 1:
+            deletePerson(cpfTree, nameTree, birthDateTree, persons, cpfSet, dateFormat, consoleHandler);
+            break;
+        case 2:
+            deleteEverything(cpfTree, nameTree, birthDateTree, persons, cpfSet, consoleHandler);
+            break;
+        case 3:
+            break;
+        }
+    }
+
+    private static void handlePrintMenuOptions(
+        ConsoleHandler consoleHandler,
+        AVLTreeGeneric<Pair<Integer, Long>> cpfTree,
+        AVLTreeGeneric<Pair<Integer, String>> nameTree,
+        AVLTreeGeneric<Pair<Integer, Long>> birthDateTree,
+        List<Person> persons,
+        Set<Long> cpfSet
+    ) {
+        if (persons.isEmpty()) {
+            System.out.println(RED + "Program is empty." + RESET);
+            return;
+        }
+
+        String[] printMenuItems = {
+            "Size info.",
+            "Person ArrayList.",
+            "CPF tree.",
+            "Name tree.",
+            "Birthdate tree.",
+            "Cancel."
+        };
+
+        consoleHandler.displayMenu("Print Menu", printMenuItems);
+        System.out.print("Option> ");
+        short userOpt = consoleHandler.getUserOption((short) 1, (short) printMenuItems.length);
+        consoleHandler.getNextLine(); // Consuming \n
+
+        switch (userOpt) {
+        case 1:
+            System.out.println(
+                "Arraylist size: " + persons.size() + "\n" +
+                "CPF Set size: " + cpfSet.size() + "\n" +
+                "CPF total nodes: " + cpfTree.getTotalNodes(cpfTree.getRoot()) + "\n" +
+                "Name total nodes: " + nameTree.getTotalNodes(nameTree.getRoot()) + "\n" +
+                "Birthdate total nodes: " + birthDateTree.getTotalNodes(birthDateTree.getRoot())
+            );
+            break;
+        case 2:
+            int sizeOfPersons = persons.size();
+            for (int i = 0; i < sizeOfPersons; i++) {
+                System.out.println("INDEX: " + i + "\n" + persons.get(i) + "\n");
+            }
+            System.out.println("Number of persons: " + sizeOfPersons);
+            break;
+        case 3:
+            cpfTree.printTree(cpfTree.getRoot());
+            System.out.println("Nodes: " + cpfTree.getTotalNodes(cpfTree.getRoot()));
+            break;
+        case 4:
+            nameTree.printTree(nameTree.getRoot());
+            System.out.println("Nodes: " + nameTree.getTotalNodes(nameTree.getRoot()));
+            break;
+        case 5:
+            birthDateTree.printTree(birthDateTree.getRoot());
+            System.out.println("Nodes: " + birthDateTree.getTotalNodes(birthDateTree.getRoot()));
+            break;
+        case 6:
+            break;
+        }
+    }
+
+    private static void consultCpf(
+        AVLTreeGeneric<Pair<Integer, Long>> cpfTree,
+        List<Person> persons,
+        ConsoleHandler consoleHandler
+    ) {
+        if (persons.isEmpty()) {
+            System.out.println(RED + "Nothing is loaded." + RESET);
+            return;
+        }
+
+        long cpfSearch = -1;
+        System.out.print("Enter CPF to search> ");
+        try {
+            cpfSearch = PersonUtils.parseStrCpfToLong(consoleHandler.getNextLine());
+        } catch (NumberFormatException e) {
+            System.out.println(RED + "Invalid CPF format.\n" + RESET + "Use only numbers or ###.###.###-##.");
+        }
+
+        PersonUtils.printPersonDetails(PersonUtils.getPersonByCpf(persons, cpfTree, cpfSearch));
+    }
+
+    private static void consultName(
+        AVLTreeGeneric<Pair<Integer, String>> nameTree,
+        List<Person> persons,
+        ConsoleHandler consoleHandler
+    ) {
+        if (persons.isEmpty()) {
+            System.out.println(RED + "Nothing is loaded." + RESET);
+            return;
+        }
+
+        System.out.print("Enter name to search> ");
+        String nameSearch = consoleHandler.getNextLine();
+
+        List<Person> foundPersons = PersonUtils.getPersonsByName(persons, nameTree, nameSearch);
+
+        if (foundPersons.isEmpty()) {
+            System.out.println("No persons with this name.");
+            return;
+        }
+
+        System.out.println("Details:");
+        for (Person person : foundPersons) {
+            PersonUtils.printPersonDetails(person);
+            System.out.println();
+        }
+    }
+
+    private static void consultBirthdate(
+        AVLTreeGeneric<Pair<Integer, Long>> birthDateTree,
+        List<Person> persons,
+        DateTimeFormatter dateFormat,
+        ConsoleHandler consoleHandler
+    ) {
+        if (persons.isEmpty()) {
+            System.out.println(RED + "Nothing is loaded." + RESET);
+            return;
+        }
+
+        LocalDate firstDateObj = null;
+        LocalDate lastDateObj = null;
+
+        try {
+            System.out.print("Search birth date from (dd/MM/yyyy): ");
+            firstDateObj = DateUtils.parseDateInput(consoleHandler.getNextLine(), dateFormat);
+            System.out.print("To (dd/MM/yyyy): ");
+            lastDateObj = DateUtils.parseDateInput(consoleHandler.getNextLine(), dateFormat);
+        } catch (DateTimeParseException e) {
+            System.out.println("Wrong format. Correct format is: " + dateFormat.toString());
+            System.out.println("Aborting.");
+            return;
+        }
+
+        long firstDateInput = DateUtils.convertDateToUnixEpoch(firstDateObj, "UTC");
+        long lastDateInput = DateUtils.convertDateToUnixEpoch(lastDateObj, "UTC");
+
+        if (firstDateInput > lastDateInput) {
+            long temp = firstDateInput;
+            firstDateInput = lastDateInput;
+            lastDateInput = temp;
+        }
+
+        List<Person> foundPersons = PersonUtils.getPersonsByBirthRange(persons, birthDateTree, firstDateInput, lastDateInput);
+
+        if (foundPersons.isEmpty()) {
+            System.out.println("No persons between these two dates.");
+            return;
+        }
+
+        System.out.println("Details:");
+        for (Person person : foundPersons) {
+            PersonUtils.printPersonDetails(person);
+            System.out.println();
+        }
+    }
+
+    private static void parseCsv(
+        AVLTreeGeneric<Pair<Integer, Long>> cpfTree,
+        AVLTreeGeneric<Pair<Integer, String>> nameTree,
+        AVLTreeGeneric<Pair<Integer, Long>> birthDateTree,
+        List<Person> persons,
+        Set<Long> cpfSet,
+        DateTimeFormatter dateFormat,
+        String filePath,
+        String sep
+    ) {
+        int i = 0;
         try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
             String line = "";
             
@@ -391,55 +413,444 @@ public class Main {
              * index number for that new person, as it gets added to the last position on the list
              */
             int offset = persons.size();
-            int i = 0;
             while((line = reader.readLine()) != null) {
-                String[] values = line.split(separator);
+                String[] values = line.split(sep);
 
                 int index = offset + i;
-    
-                long cpf = Long.parseLong(values[0]);
-                String cpfString = values[0];
+
+                long cpf = PersonUtils.parseStrCpfToLong(values[0]);
 
                 if (cpfSet.contains(cpf)) {
-                    System.out.println("***CPF: " + cpf + " already exists on CSV, skipping.***");
+                    System.out.println(
+                        RED +
+                        "*** CPF " + cpf + " already exists on CSV, skipping. ***" +
+                        RESET
+                    );
                     continue;
                 }
 
-                cpfSet.add(cpf); // To not allow same CPFs, but allow same names/birthdates
-
-                Pair<Integer, Long> cpfPair = new Pair<>(index, cpf);
-                cpfTree.insert(cpfPair);
-
-                long rg = Long.parseLong(values[1]);
-                String rgString = values[1];
-        
-                String name = values[2];
-                Pair<Integer, String> namePair = new Pair<>(index, name);
-                nameTree.insertDupAllow(namePair);
+                // test if rg is indeed a number
+                PersonUtils.parseStrRgToLong(values[1]);
 
                 String birthDate = values[3];
 
-                DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("dd/MM/yyyy");
                 LocalDate birthDatePerson = DateUtils.parseDateInput(birthDate, dateFormat);
-                
+
                 // Birthdates are transformed to unix epoch longs, to be easier
                 // to compare and balance
-                long birthDateUnixEpoch = birthDatePerson
-                    .atStartOfDay(ZoneId.of("UTC"))
-                    .toInstant()
-                    .toEpochMilli();
-
-                Pair<Integer, Long> birthDatePair = new Pair<>(index, birthDateUnixEpoch);
-                birthDateTree.insertDupAllow(birthDatePair);
+                long birthDateMillis = DateUtils.convertDateToUnixEpoch(birthDatePerson, "UTC");
 
                 String city = values[4];
 
-                Person person = new Person(cpfString, rgString, name, birthDate, city);
-                persons.add(person);
+                PersonUtils.addNewPerson(cpfTree, nameTree, birthDateTree, persons, cpfSet, values[0], cpf, values[1], values[2], birthDate, birthDateMillis, city, index);
+                //cpfSet.add(cpf); // To not allow same CPFs, but allow same names/birthdates
                 i++;
             }
+        } catch(FileNotFoundException e) {
+            System.out.println(RED + "*** " + filePath + ": No such file or directory. ***" + RESET);
+        } catch(NumberFormatException e) {
+            System.out.println(
+                RED + "*** Fault in number parsing. ***\n" + RESET +
+                "Check file " + filePath + " for incorrect numbers on line " + (i + 1) +
+                " or correct separator on file/passed as input.\n" +
+                RED + "*** Aborting load process for this file. ***" + RESET
+            );
+        } catch(DateTimeParseException e) {
+            System.out.println(
+                RED + "*** Fault in birthdate parsing. ***\n" + RESET +
+                "Check file " + filePath + " for incorrect birthdates on line " + (i + 1) + ".\n" +
+                RED + "*** Aborting load process for this file. ***" + RESET
+            );
         } catch(Exception e) {
             e.printStackTrace();
+        } finally {
+            System.out.println(GREEN + "Loaded " + i + " lines from file: " + filePath + "." + RESET);
         }
+    }
+
+    private static void parseDir(
+        AVLTreeGeneric<Pair<Integer, Long>> cpfTree,
+        AVLTreeGeneric<Pair<Integer, String>> nameTree,
+        AVLTreeGeneric<Pair<Integer, Long>> birthDateTree,
+        List<Person> persons,
+        Set<Long> cpfSet,
+        DateTimeFormatter dateFormat,
+        String dirPath,
+        String sep
+    ) {
+        File path = new File(dirPath);
+        File[] files = path.listFiles();
+
+        if (files == null) {
+            System.out.println("*** " + dirPath + ": No such file or directory. ***");
+            return;
+        }
+
+        for (int i = 0; i < files.length; i++) {
+            if (files[i].isFile() && files[i].getName().toLowerCase().endsWith(".csv")) {
+                parseCsv(
+                    cpfTree,
+                    nameTree,
+                    birthDateTree,
+                    persons,
+                    cpfSet,
+                    dateFormat,
+                    files[i].getAbsolutePath(),
+                    sep
+                );
+            }
+        }
+    }
+
+    private static void loadCsvFile(
+        AVLTreeGeneric<Pair<Integer, Long>> cpfTree,
+        AVLTreeGeneric<Pair<Integer, String>> nameTree,
+        AVLTreeGeneric<Pair<Integer, Long>> birthDateTree,
+        List<Person> persons,
+        Set<Long> cpfSet,
+        DateTimeFormatter dateFormat,
+        ConsoleHandler consoleHandler
+    ) {
+        System.out.print("CSV file name> ");
+        String filePath = consoleHandler.getNextLine();
+        System.out.print("CSV value separator> ");
+        String sep = consoleHandler.getNextLine();
+
+        parseCsv(cpfTree, nameTree, birthDateTree, persons, cpfSet, dateFormat, filePath, sep);
+    }
+
+    private static void loadFilesFromDirectory(
+        AVLTreeGeneric<Pair<Integer, Long>> cpfTree,
+        AVLTreeGeneric<Pair<Integer, String>> nameTree,
+        AVLTreeGeneric<Pair<Integer, Long>> birthDateTree,
+        List<Person> persons,
+        Set<Long> cpfSet,
+        DateTimeFormatter dateFormat,
+        ConsoleHandler consoleHandler
+    ) {
+        System.out.print("Directory where CSVs are located> ");
+        String dirPath = consoleHandler.getNextLine();
+        System.out.print("CSVs value separator> ");
+        String sep = consoleHandler.getNextLine();
+
+        parseDir(cpfTree, nameTree, birthDateTree, persons, cpfSet, dateFormat, dirPath, sep);
+    }
+
+    private static void inputAddOrUpdPerson(
+        AVLTreeGeneric<Pair<Integer, Long>> cpfTree,
+        AVLTreeGeneric<Pair<Integer, String>> nameTree,
+        AVLTreeGeneric<Pair<Integer, Long>> birthDateTree,
+        List<Person> persons,
+        Set<Long> cpfSet,
+        DateTimeFormatter dateFormat,
+        ConsoleHandler consoleHandler
+    ) {
+        System.out.println("Enter no value to cancel anytime.");
+        System.out.println("Enter an existent CPF to update a person.");
+        System.out.print("CPF> ");
+        String cpfString = consoleHandler.getNextLine().trim();
+
+        if (cpfString.isEmpty()) {
+            System.out.println("Canceling.");
+            return;
+        }
+
+        long cpfLong;
+
+        try {
+            cpfLong = PersonUtils.parseStrCpfToLong(cpfString);
+        } catch (NumberFormatException e) {
+            System.out.println(
+                RED + "*** Wrong format for CPF. ***" + RESET +
+                "\nUse only numbers or format ###.###.###-##"
+            );
+            return;
+        }
+
+        boolean updatePerson = false;
+        int index = cpfTree.getKeyByValue(cpfLong);
+        if (index != -1) {
+            System.out.println(
+                RED + "CPF already exists.\n" + RESET +
+                "Person has the following values:\n\n"  +
+                persons.get(index) + "\n\nEnter the values to" +
+                GREEN + " update" + RESET + ":"
+            );
+            updatePerson = true;
+        } else {
+            System.out.println("CPF" + RED + " not found." + RESET + "\nAdding person.");
+        }
+
+        System.out.print("RG> ");
+        String rgString = consoleHandler.getNextLine().trim();;
+
+        if (rgString.isEmpty()) {
+            System.out.println("Canceling.");
+            return;
+        }
+
+        // test if rg is indeed a number
+        try {
+            PersonUtils.parseStrRgToLong(rgString);
+        } catch (NumberFormatException e) {
+            System.out.println(RED + "*** Wrong format for RG, use only numbers. ***" + RESET);
+            return;
+        }
+
+        System.out.print("Name> ");
+        String name = consoleHandler.getNextLine().trim();
+
+        if (name.isEmpty()) {
+            System.out.println("Canceling.");
+            return;
+        }
+
+        System.out.print("Birthdate (DD/MM/YYYY)> ");
+
+        String birthDateStr = consoleHandler.getNextLine().trim();;
+
+        if (birthDateStr.isEmpty()) {
+            System.out.println("Canceling.");
+            return;
+        }
+
+        LocalDate birthDateObj = null;
+        try {
+            birthDateObj = DateUtils.parseDateInput(birthDateStr, dateFormat);
+        } catch (DateTimeParseException e) {
+            System.out.println(RED + "*** Incorrect birthdate format. ***" + RESET);
+            return;
+        }
+
+        long birthDateMillis = DateUtils.convertDateToUnixEpoch(birthDateObj, "UTC");
+
+        System.out.print("City> ");
+        String city = consoleHandler.getNextLine().trim();;
+
+        if (city.isEmpty()) {
+            System.out.println("Canceling.");
+            return;
+        }
+
+        if (updatePerson) {
+            PersonUtils.updatePerson(
+                nameTree,
+                birthDateTree,
+                persons,
+                index,
+                rgString,
+                name,
+                birthDateStr,
+                city,
+                dateFormat
+            );
+            System.out.println(GREEN + "Update successful." + RESET);
+            return;
+        }
+        PersonUtils.addNewPerson(
+            cpfTree,
+            nameTree,
+            birthDateTree,
+            persons,
+            cpfSet,
+            cpfString,
+            cpfLong,
+            rgString,
+            name,
+            birthDateStr,
+            birthDateMillis,
+            city,
+            persons.size()
+        );
+        System.out.println(GREEN + "Add successful." + RESET);
+    }
+
+    private static void saveToFileInput(List<Person> persons, ConsoleHandler consoleHandler) {
+        if (persons.isEmpty()) {
+            System.out.println(RED + "Nothing is loaded." + RESET);
+            return;
+        }
+
+        System.out.print("Directory to save> ");
+        String dir = consoleHandler.getNextLine();
+        System.out.print("File name to save> ");
+        String fileName = consoleHandler.getNextLine();
+        System.out.print("Separator> ");
+        String sep = consoleHandler.getNextLine();
+
+        File dirPath = new File(dir);
+        if (!dirPath.exists()) {
+            if (dirPath.mkdirs()) {
+                System.out.println(GREEN + "Directory created." + RESET);
+            } else {
+                System.out.println(RED + "Failed to create directory." + RESET);
+                return;
+            }
+        }
+
+        File file = new File(dirPath, fileName);
+
+        if(file.exists()) {
+            System.out.println(
+                RED + "File exists in the directory.\n" + RESET +
+                "Do you want to overwrite it?"
+            );
+            System.out.print("[Y]es.\n[N]o.\nOption> ");
+            String delAll = consoleHandler.getNextLine();
+            if (Character.toLowerCase(delAll.charAt(0)) != 'y') {
+                System.out.println(RED + "Aborting." + RESET);
+                return;
+            }
+        }
+
+        saveToFile(persons, file.getAbsolutePath(), sep);
+    }
+
+    private static void saveToFile(List<Person> persons, String fileName, String sep) {
+        
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(fileName + ".csv"))) {
+            for (Person person : persons) {
+                writer.write(
+                    person.getCpf() + sep +
+                    person.getRg() + sep +
+                    person.getName() + sep +
+                    person.getBirthDate() + sep +
+                    person.getCity() + "\n"
+                );
+            }
+            System.out.println(GREEN + "File saved successfully." + RESET);
+        } catch (IOException e) {
+            System.out.println(RED + "*** Could not save file. ***" + RESET);
+            e.printStackTrace();
+        }
+    }
+
+    private static void deletePerson(
+        AVLTreeGeneric<Pair<Integer, Long>> cpfTree,
+        AVLTreeGeneric<Pair<Integer, String>> nameTree,
+        AVLTreeGeneric<Pair<Integer, Long>> birthDateTree,
+        List<Person> persons,
+        Set<Long> cpfSet,
+        DateTimeFormatter dateFormat,
+        ConsoleHandler consoleHandler
+    ) {
+        if (persons.isEmpty()) {
+            System.out.println(RED + "There is nothing to delete." + RESET);
+            return;
+        }
+        
+        String cpfStringDel = null;
+        System.out.print("CPF to delete (Enter [c] to [C]ancel)> ");
+        cpfStringDel = consoleHandler.getNextLine().trim();
+
+        if (Character.toLowerCase(cpfStringDel.charAt(0)) == 'c') {
+            System.out.println("Canceling.");
+            return;
+        }
+
+        long cpfDel;
+        try {
+            cpfDel = PersonUtils.parseStrCpfToLong(cpfStringDel);
+        } catch(NumberFormatException e) {
+            System.out.println(RED + "Invalid CPF format.\n " + RESET + "Use only numbers or ###.###.###-##.");
+            return;
+        }
+
+        System.out.println("Deleting...");
+
+        long startTime = System.nanoTime();
+
+        PersonUtils.deletePersonByCpf(cpfTree, nameTree, birthDateTree, persons, cpfSet, dateFormat, cpfDel);
+
+        long endTime = System.nanoTime();
+        System.out.println(GREEN + "Deletion successful." + RESET);
+        System.out.println("Duration: " + ((endTime - startTime) / 1000000) + "ms");
+    }
+
+    private static void deleteEverything(
+        AVLTreeGeneric<Pair<Integer, Long>> cpfTree,
+        AVLTreeGeneric<Pair<Integer, String>> nameTree,
+        AVLTreeGeneric<Pair<Integer, Long>> birthDateTree,
+        List<Person> persons,
+        Set<Long> cpfSet,
+        ConsoleHandler consoleHandler
+    ) {
+        if (persons.isEmpty()) {
+            System.out.println(RED + "There is nothing to delete." + RESET);
+            return;
+        }
+
+        System.out.print(
+            "Proceed with " + RED + "deleting everything?\n" + RESET +
+            "[Y]ES.\n" +
+            "[N]O.\n" +
+            "Option> "
+        );
+        String delAll = consoleHandler.getNextLine();
+        if (Character.toLowerCase(delAll.charAt(0)) != 'y') {
+            System.out.println(RED + "Aborting." + RESET);
+            return;
+        }
+
+        persons.clear();
+        cpfSet.clear();
+        cpfTree.massRemove(cpfTree.getRoot().data);
+        nameTree.massRemove(nameTree.getRoot().data);
+        birthDateTree.massRemove(birthDateTree.getRoot().data);
+        System.out.println(GREEN + "Deletion successful." + RESET);
+    }
+
+    private static void printTrees(
+        AVLTreeGeneric<Pair<Integer, Long>> cpfTree,
+        AVLTreeGeneric<Pair<Integer, String>> nameTree,
+        AVLTreeGeneric<Pair<Integer, Long>> birthDateTree,
+        List<Person> persons,
+        Set<Long> cpfSet,
+        ConsoleHandler consoleHandler
+    ) {
+        if (persons.isEmpty()) {
+
+            System.out.println(RED + "There is nothing to print." + RESET);
+            return;
+        }
+
+        System.out.print(
+            "Print:\n" +
+            "[1] Size info.\n" +
+            "[2] Person ArrayList.\n" +
+            "[3] CPF tree.\n" +
+            "[4] Name tree.\n" +
+            "[5] Birthdate tree.\n"
+        );
+
+        System.out.print("Option> ");
+        short printWhichTree = consoleHandler.getUserOption((short) 1, (short) 6);
+    }
+
+    private static void addNewPerson(
+        AVLTreeGeneric<Pair<Integer, Long>> cpfTree,
+        AVLTreeGeneric<Pair<Integer, String>> nameTree,
+        AVLTreeGeneric<Pair<Integer, Long>> birthDateTree,
+        List<Person> persons,
+        String cpfString,
+        long cpfLong,
+        String rg,
+        String name,
+        String birthDate,
+        long birthDateMillis,
+        String city,
+        int index
+    ) {
+        Pair<Integer, Long> cpfPair = new Pair<>(index, cpfLong);
+        cpfTree.insert(cpfPair);
+
+        Pair<Integer, String> namePair = new Pair<>(index, name);
+        nameTree.insertDupAllow(namePair);
+
+        Pair<Integer, Long> birthDatePair = new Pair<>(index, birthDateMillis);
+        birthDateTree.insertDupAllow(birthDatePair);
+
+        Person person = new Person(cpfString, rg, name, birthDate, city);
+        persons.add(person);
     }
 }
