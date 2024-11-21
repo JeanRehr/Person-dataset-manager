@@ -1,3 +1,5 @@
+package gb;
+
 public class Pair<K, V extends Comparable<V>> implements Comparable<Pair<K, V>> {
     private K key;
     private V value;
