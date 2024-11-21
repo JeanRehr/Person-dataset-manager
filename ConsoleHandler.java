@@ -1,4 +1,9 @@
+package gb;
+
 import java.util.Scanner;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 
 public class ConsoleHandler {
     private final Scanner scanner;
@@ -16,17 +21,54 @@ public class ConsoleHandler {
         System.out.flush();
     }
 
-    public void options() {
+    public static void displayMenu(String menuName, String[] menuItems) {
+        System.out.println("----------------------------------------");
+        System.out.println(menuName);
+        System.out.println("----------------------------------------");
+        
+        for (int i = 0; i < menuItems.length; i++) {
+            System.out.printf("[%1d] %s\n", i+1, menuItems[i]);
+        }
+    }
+
+    public void displayOptions() {
         System.out.print(
-            "--------------------------------------------------\n" +
-            "Opções: [1] Consult CPF.       [6] Help.\n" +
-            "        [2] Consult Name.      [7] Clear screen.\n" +
-            "        [3] Consult Birthdate. [8] Print.\n" +
-            "        [4] Load file.         [9] Exit.\n" +
-            "        [5] Delete.\n" +
-            "--------------------------------------------------\n"
+            "+-----------------------------------------------------------+\n" +
+            "|Options: [1] Consult CPF.       [7] Print.                 |\n" +
+            "|         [2] Consult Name.      [8] Help.                  |\n" +
+            "|         [3] Consult Birthdate. [9] Exit.                  |\n" +
+            "|         [4] Load file.         [0] Clear Console.         |\n" +
+            "|         [5] Delete.            [10] Update or add person. |\n" +
+            "|         [6] Mass load files.   [11] Delete everything.    |\n" +
+            "+-----------------------------------------------------------+\n"
         );
     }
+    /*
+    ----------------------------------------
+    Main Menu
+    ----------------------------------------
+    [1] Consult by.
+    [2] Load.
+    [3] Update or add person.
+    [4] Save to file.
+    [5] Delete.
+    [6] Print.
+    [7] Help.
+    [8] Clear console.
+    [9] Exit.
+    ----------------------------------------
+    */
+
+    /*
+    "+-----------------------------------------------------------+\n" +
+    "|Options: [1] Consult CPF.          [7] Write to file.      |\n" +
+    "|         [2] Consult Name.         [8] Help.               |\n" +
+    "|         [3] Consult Birthdate.    [9] Exit.               |\n" +
+    "|         [4] Load file.            [0] Delete by CPF.      |\n" +
+    "|         [5] Load a directory.     [10] Print.             |\n" +
+    "|         [6] Update or add person. [11] Delete everything. |\n" +
+    "+-----------------------------------------------------------+\n"
+     */
 
     public <T> T parseValue(String input, Class<T> type) {
         try {
@@ -48,7 +90,6 @@ public class ConsoleHandler {
         }
     }
 
-    // Tried a wrapper for nextLine, doesn't work
     public String getNextLine() {
         try {
             return scanner.nextLine();
@@ -89,5 +130,37 @@ public class ConsoleHandler {
             userOpt = getShort();
         }
         return userOpt;
+    }
+
+    public void displayHelp() {
+        System.out.println(
+"+========================================================================================+\n" + 
+"|                             HELP - CSV Person Data Manager                             |\n" +
+"+========================================================================================+\n" +
+"| This program allows you to manage and query a dataset of persons using CSV files.      |\n" +
+"| Each person has the following fields: CPF, RG, Name, Birthdate, and City.              |\n" +
+"| The expected CSV format is: CPF,RG,Name,Birthdate,City (no headers).                   |\n" +
+"| Example: 012.345.678-90;9876543210;John Doe;23/12/1988;Westford.                       |\n" +
+"+----------------------------------------------------------------------------------------+\n" +
+"| OPTIONS:                                                                               |\n" +
+"| [1] Consult by.           - Access submenu to search by CPF, Name, or Birthdate range. |\n" +
+"| [2] Load.                 - Access submenu to load from a file or directory.           |\n" +
+"| [3] Update or add.        - Updates or adds a new person manually.                     |\n" +
+"| [4] Save to file.         - Saves the current dataset to a CSV file.                   |\n" +
+"| [5] Delete.               - Access submenu to delete a person by CPF or everything.    |\n" +
+"| [6] Print.                - Access submenu to print size, person, or tree details.     |\n" +
+"| [7] Help.                 - Display this help message.                                 |\n" +
+"| [8] Clear console.        - Clears the screen.                                         |\n" +
+"| [9] Exit.                 - Exit the program.                                          |\n" +
+"+----------------------------------------------------------------------------------------+\n" +
+"| INPUT FORMATS:                                                                         |\n" +
+"| CPF                       - Only numeric or in the format: ###.###.###-##.             |\n" +
+"| RG                        - Only numeric.                                              |\n" +
+"| Name                      - Alphanumeric, case-insensitive.                            |\n" +
+"| Birthdate                 - Format: DD/MM/YYYY.                                        |\n" +
+"+========================================================================================+\n" +
+"|                                  Program by Jean Rehr                                  |\n" +
+"+========================================================================================+"
+        );
     }
 }
