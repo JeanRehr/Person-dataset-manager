@@ -1,3 +1,5 @@
+package gb;
+
 public class Person {
     private String cpf;
     private String rg;
@@ -15,10 +17,6 @@ public class Person {
 
     public String getCpf() {
         return cpf;
-    }
-
-    public void setCpf(String cpf) {
-        this.cpf = cpf;
     }
 
     public String getRg() {
@@ -55,6 +53,6 @@ public class Person {
 
     public String toString() {
         return "CPF: " + cpf + "\nRG: " + rg +
-        "\nNome: " + name + "\nData de Nascimento: " + birthDate + "\nCidade: " + city;
+        "\nName: " + name + "\nBirthdate: " + birthDate + "\nCity: " + city;
     }
 }
