@@ -775,7 +775,6 @@ public class AVLTreeGeneric<T extends Comparable<T>> {
      * duplicates, use the method getKeyByValueDup for trees that allows duplicates
      */
     public <K, V extends Comparable<V>> int getKeyByValue(V value) {
-        int key = getKeyByValueDupRec(root, value);
         return getKeyByValueRec(root, value);
     }
 
