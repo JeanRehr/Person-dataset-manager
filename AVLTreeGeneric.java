@@ -1,10 +1,12 @@
+package gb;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.HashSet;
 import java.util.Set;
 
 class Node<T> {
-    T data;
+    public T data;
     int height;
     Node<T> left;
     Node<T> right;
@@ -13,6 +15,10 @@ class Node<T> {
     public Node(T data) {
         this.data = data;
         this.height = 1;
+    }
+
+    public T getData() {
+        return this.data;
     }
 }
 
@@ -145,8 +151,8 @@ public class AVLTreeGeneric<T extends Comparable<T>> {
         return node == null ? true : false;
     }
 
-    public boolean treeIsEmpty(AVLTreeGeneric<T> tree) {
-        return tree.getRoot() == null ? true : false;
+    public boolean isEmpty() {
+        return getRoot() == null ? true : false;
     }
 
     public boolean nodesEquals(Node<T> node1, Node<T> node2) {
@@ -769,6 +775,7 @@ public class AVLTreeGeneric<T extends Comparable<T>> {
      * duplicates, use the method getKeyByValueDup for trees that allows duplicates
      */
     public <K, V extends Comparable<V>> int getKeyByValue(V value) {
+        int key = getKeyByValueDupRec(root, value);
         return getKeyByValueRec(root, value);
     }
 
@@ -831,8 +838,8 @@ public class AVLTreeGeneric<T extends Comparable<T>> {
     }
 
     // prefixMatch to work on Pairs
-    public <K, V extends Comparable<V>> ArrayList<String> prefixMatchPair(String prefix) {
-        ArrayList<String> matchedNodesValue = new ArrayList<>();
+    public <K, V extends Comparable<V>> List<String> prefixMatchPair(String prefix) {
+        List<String> matchedNodesValue = new ArrayList<>();
 
         // explicit cast of a Pair node
         prefixMatchPairRec((Node<Pair<K, V>>) root, prefix, matchedNodesValue);
@@ -843,7 +850,7 @@ public class AVLTreeGeneric<T extends Comparable<T>> {
     private <K, V extends Comparable<V>> void prefixMatchPairRec(
         Node<Pair<K, V>> node,
         String prefix,
-        ArrayList<String> matchedNodesValue
+        List<String> matchedNodesValue
     ) {
         if (node == null) {
             return;
