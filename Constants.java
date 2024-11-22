@@ -5,7 +5,8 @@ import java.time.format.DateTimeFormatter;
 public final class Constants {
     private  Constants() {} // Restrict instantiation
 
-    public static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    public static final String DATE_PATTERN = "dd/MM/yyyy";
+    public static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern(DATE_PATTERN);
     // ANSI codes
     // Reset
     public static final String RESET = "\033[0m";  // Text Reset

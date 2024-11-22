@@ -123,11 +123,11 @@ public class ConsoleHandler {
         return scanner.nextShort();
     }
 
-    public short getUserOption(short low, short high) {
-        short userOpt = getShort();
+    public int getUserOption(int low, int high) {
+        int userOpt = getInt();
         while (userOpt > high || userOpt < low) {
             System.out.print("Invalid option.\n> ");
-            userOpt = getShort();
+            userOpt = getInt();
         }
         return userOpt;
     }
@@ -154,7 +154,7 @@ public class ConsoleHandler {
 "| [9] Exit.                 - Exit the program.                                          |\n" +
 "+----------------------------------------------------------------------------------------+\n" +
 "| INPUT FORMATS:                                                                         |\n" +
-"| CPF                       - Only numeric or in the format: ###.###.###-##.             |\n" +
+"| CPF                       - Only numeric or in the format ###.###.###-##.              |\n" +
 "| RG                        - Only numeric.                                              |\n" +
 "| Name                      - Alphanumeric, case-insensitive.                            |\n" +
 "| Birthdate                 - Format: DD/MM/YYYY.                                        |\n" +

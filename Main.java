@@ -49,7 +49,7 @@ public class Main {
         while (true) {
             consoleHandler.displayMenu("Main Menu", mainMenuItems);
             System.out.print("Option> ");
-            short userOpt = consoleHandler.getUserOption((short) 0, (short) mainMenuItems.length);
+            int userOpt = consoleHandler.getUserOption(0, mainMenuItems.length);
             consoleHandler.getNextLine(); // Consuming \n
             if (userOpt == 9) {
                 break;
@@ -69,7 +69,7 @@ public class Main {
     }
 
     private static void handleMainMenuOption(
-        short userOpt,
+        int userOpt,
         AVLTreeGeneric<Pair<Integer, Long>> cpfTree,
         AVLTreeGeneric<Pair<Integer, String>> nameTree,
         AVLTreeGeneric<Pair<Integer, Long>> birthDateTree,
@@ -88,7 +88,7 @@ public class Main {
         case 3: // Add or Update Person
             inputAddOrUpdPerson(cpfTree, nameTree, birthDateTree, persons, cpfSet, dateFormat, consoleHandler);
             break;
-        case 4: // Carregar arquivo
+        case 4: // Save csv
             saveToFileInput(persons, consoleHandler);
             break;
         case 5: // Delete
@@ -130,7 +130,7 @@ public class Main {
 
         consoleHandler.displayMenu("Consult Menu", consultMenuItems);
         System.out.print("Option> ");
-        short userOpt = consoleHandler.getUserOption((short) 1, (short) consultMenuItems.length);
+        int userOpt = consoleHandler.getUserOption(1, consultMenuItems.length);
         consoleHandler.getNextLine(); // Consuming \n
 
         switch (userOpt) {
@@ -165,7 +165,7 @@ public class Main {
 
         consoleHandler.displayMenu("Load Menu", loadMenuItems);
         System.out.print("Option> ");
-        short userOpt = consoleHandler.getUserOption((short) 1, (short) loadMenuItems.length);
+        int userOpt = consoleHandler.getUserOption(1, loadMenuItems.length);
         consoleHandler.getNextLine(); // Consuming \n
 
         switch (userOpt) {
@@ -218,7 +218,7 @@ public class Main {
 
         consoleHandler.displayMenu("Delete Menu", deletePersonMenuItems);
         System.out.print("Option> ");
-        short userOpt = consoleHandler.getUserOption((short) 1, (short) deletePersonMenuItems.length);
+        int userOpt = consoleHandler.getUserOption(1, deletePersonMenuItems.length);
         consoleHandler.getNextLine(); // Consuming \n
 
         switch (userOpt) {
@@ -257,7 +257,7 @@ public class Main {
 
         consoleHandler.displayMenu("Print Menu", printMenuItems);
         System.out.print("Option> ");
-        short userOpt = consoleHandler.getUserOption((short) 1, (short) printMenuItems.length);
+        int userOpt = consoleHandler.getUserOption(1, printMenuItems.length);
         consoleHandler.getNextLine(); // Consuming \n
 
         switch (userOpt) {
@@ -308,11 +308,23 @@ public class Main {
         System.out.print("Enter CPF to search> ");
         try {
             cpfSearch = PersonUtils.parseStrCpfToLong(consoleHandler.getNextLine());
-        } catch (NumberFormatException e) {
-            System.out.println(RED + "Invalid CPF format.\n" + RESET + "Use only numbers or ###.###.###-##.");
+        } catch (IllegalArgumentException iae) {
+            System.out.println(
+                RED + "CPF does not match any of the accepted formats.\n" + RESET +
+                "Use only 11 numbers or ###.###.###-##."
+            );
+            return;
         }
 
-        PersonUtils.printPersonDetails(PersonUtils.getPersonByCpf(persons, cpfTree, cpfSearch));
+        Person personConsult = PersonUtils.getPersonByCpf(persons, cpfTree, cpfSearch);
+
+        if (personConsult == null) {
+            System.out.println(RED + "CPF doesn't exist." + RESET);
+            return;
+        }
+
+        System.out.println("Details:");
+        PersonUtils.printPersonDetails(personConsult);
     }
 
     private static void consultName(
@@ -328,10 +340,10 @@ public class Main {
         System.out.print("Enter name to search> ");
         String nameSearch = consoleHandler.getNextLine();
 
-        List<Person> foundPersons = PersonUtils.getPersonsByName(persons, nameTree, nameSearch);
-
+        List<Person> foundPersons = PersonUtils.getPersonsByName(persons, nameTree, nameSearch);  ;
+    
         if (foundPersons.isEmpty()) {
-            System.out.println("No persons with this name.");
+            System.out.println(RED + "No persons found with given prefix." + RESET);
             return;
         }
 
@@ -357,13 +369,16 @@ public class Main {
         LocalDate lastDateObj = null;
 
         try {
-            System.out.print("Search birth date from (dd/MM/yyyy): ");
+            System.out.print("Search birth date from: ");
             firstDateObj = DateUtils.parseDateInput(consoleHandler.getNextLine(), dateFormat);
-            System.out.print("To (dd/MM/yyyy): ");
+            System.out.print("To: ");
             lastDateObj = DateUtils.parseDateInput(consoleHandler.getNextLine(), dateFormat);
-        } catch (DateTimeParseException e) {
-            System.out.println("Wrong format. Correct format is: " + dateFormat.toString());
-            System.out.println("Aborting.");
+        } catch (DateTimeParseException dtpe) {
+            System.out.println(
+                RED + "Wrong format.\n" + RESET +
+                "Correct format is: " + DATE_PATTERN +
+                RED + "\nAborting." + RESET
+            );
             return;
         }
 
@@ -379,7 +394,7 @@ public class Main {
         List<Person> foundPersons = PersonUtils.getPersonsByBirthRange(persons, birthDateTree, firstDateInput, lastDateInput);
 
         if (foundPersons.isEmpty()) {
-            System.out.println("No persons between these two dates.");
+            System.out.println(RED + "No birthdates between " + firstDateObj + " and " + lastDateObj + RESET);
             return;
         }
 
@@ -418,12 +433,14 @@ public class Main {
 
                 int index = offset + i;
 
-                long cpf = PersonUtils.parseStrCpfToLong(values[0]);
+                String cpfString = PersonUtils.parseStrCpfToFull(values[0]);
 
-                if (cpfSet.contains(cpf)) {
+                long cpfLong = PersonUtils.parseStrCpfToLong(cpfString);
+
+                if (cpfSet.contains(cpfLong)) {
                     System.out.println(
                         RED +
-                        "*** CPF " + cpf + " already exists on CSV, skipping. ***" +
+                        "*** CPF " + cpfLong + " already exists on the dataset, skipping. ***" +
                         RESET
                     );
                     continue;
@@ -442,29 +459,44 @@ public class Main {
 
                 String city = values[4];
 
-                PersonUtils.addNewPerson(cpfTree, nameTree, birthDateTree, persons, cpfSet, values[0], cpf, values[1], values[2], birthDate, birthDateMillis, city, index);
+                PersonUtils.addNewPerson(cpfTree, nameTree, birthDateTree, persons, cpfSet, cpfString, cpfLong, values[1], values[2], birthDate, birthDateMillis, city, index);
                 //cpfSet.add(cpf); // To not allow same CPFs, but allow same names/birthdates
                 i++;
             }
-        } catch(FileNotFoundException e) {
+        } catch(FileNotFoundException fnfe) {
             System.out.println(RED + "*** " + filePath + ": No such file or directory. ***" + RESET);
-        } catch(NumberFormatException e) {
+            return;
+        } catch (IllegalArgumentException iae) {
+            System.out.println(
+                RED + "CPF on line " + (i+1) + " does not match any of the accepted formats.\n" + RESET +
+                "Use only 11 numbers or ###.###.###-##."
+            );
+            return;
+        /*} catch(NumberFormatException nfe) {
             System.out.println(
                 RED + "*** Fault in number parsing. ***\n" + RESET +
-                "Check file " + filePath + " for incorrect numbers on line " + (i + 1) +
+                "Check file " + filePath + " for incorrect numbers on line " + (i+1) +
                 " or correct separator on file/passed as input.\n" +
                 RED + "*** Aborting load process for this file. ***" + RESET
             );
-        } catch(DateTimeParseException e) {
+            return;*/
+        } catch(DateTimeParseException dtpe) {
             System.out.println(
                 RED + "*** Fault in birthdate parsing. ***\n" + RESET +
                 "Check file " + filePath + " for incorrect birthdates on line " + (i + 1) + ".\n" +
+                "Correct format is: " + DATE_PATTERN + ".\n" +
                 RED + "*** Aborting load process for this file. ***" + RESET
             );
+            return;
         } catch(Exception e) {
             e.printStackTrace();
+            return;
         } finally {
-            System.out.println(GREEN + "Loaded " + i + " lines from file: " + filePath + "." + RESET);
+            if (i == 0) {
+                System.out.println(RED + "No lines were loaded from file: " + filePath + "." + RESET);
+            } else {
+                System.out.println(GREEN + "Loaded " + i + " lines from file: " + filePath + "." + RESET);
+            }
         }
     }
 
@@ -551,7 +583,17 @@ public class Main {
         String cpfString = consoleHandler.getNextLine().trim();
 
         if (cpfString.isEmpty()) {
-            System.out.println("Canceling.");
+            System.out.println(RED + "Cancelling." + RESET);
+            return;
+        }
+
+        try {
+            cpfString = PersonUtils.parseStrCpfToFull(cpfString);
+        } catch (IllegalArgumentException iae) {
+            System.out.println(
+                RED + "CPF does not match any of the accepted formats.\n" + RESET +
+                "Use only 11 numbers or ###.###.###-##."
+            );
             return;
         }
 
@@ -559,10 +601,10 @@ public class Main {
 
         try {
             cpfLong = PersonUtils.parseStrCpfToLong(cpfString);
-        } catch (NumberFormatException e) {
+        } catch (IllegalArgumentException iae) {
             System.out.println(
-                RED + "*** Wrong format for CPF. ***" + RESET +
-                "\nUse only numbers or format ###.###.###-##"
+                RED + "CPF does not match any of the accepted formats.\n" + RESET +
+                "Use only 11 numbers or ###.###.###-##."
             );
             return;
         }
@@ -585,14 +627,14 @@ public class Main {
         String rgString = consoleHandler.getNextLine().trim();;
 
         if (rgString.isEmpty()) {
-            System.out.println("Canceling.");
+            System.out.println(RED + "Cancelling." + RESET);
             return;
         }
 
         // test if rg is indeed a number
         try {
             PersonUtils.parseStrRgToLong(rgString);
-        } catch (NumberFormatException e) {
+        } catch (NumberFormatException nfe) {
             System.out.println(RED + "*** Wrong format for RG, use only numbers. ***" + RESET);
             return;
         }
@@ -601,24 +643,27 @@ public class Main {
         String name = consoleHandler.getNextLine().trim();
 
         if (name.isEmpty()) {
-            System.out.println("Canceling.");
+            System.out.println(RED + "Cancelling." + RESET);
             return;
         }
 
-        System.out.print("Birthdate (DD/MM/YYYY)> ");
+        System.out.print("Birthdate> ");
 
         String birthDateStr = consoleHandler.getNextLine().trim();;
 
         if (birthDateStr.isEmpty()) {
-            System.out.println("Canceling.");
+            System.out.println(RED + "Cancelling." + RESET);
             return;
         }
 
         LocalDate birthDateObj = null;
         try {
             birthDateObj = DateUtils.parseDateInput(birthDateStr, dateFormat);
-        } catch (DateTimeParseException e) {
-            System.out.println(RED + "*** Incorrect birthdate format. ***" + RESET);
+        } catch (DateTimeParseException dtpe) {
+            System.out.println(
+                RED + "*** Incorrect birthdate format. ***" + RESET +
+                "Correct format is: " + DATE_PATTERN + RED + "Aborting." + RESET
+            );
             return;
         }
 
@@ -628,7 +673,7 @@ public class Main {
         String city = consoleHandler.getNextLine().trim();;
 
         if (city.isEmpty()) {
-            System.out.println("Canceling.");
+            System.out.println(RED + "Cancelling." + RESET);
             return;
         }
 
@@ -719,9 +764,9 @@ public class Main {
                 );
             }
             System.out.println(GREEN + "File saved successfully." + RESET);
-        } catch (IOException e) {
+        } catch (IOException ioe) {
             System.out.println(RED + "*** Could not save file. ***" + RESET);
-            e.printStackTrace();
+            return;
         }
     }
 
@@ -744,15 +789,18 @@ public class Main {
         cpfStringDel = consoleHandler.getNextLine().trim();
 
         if (Character.toLowerCase(cpfStringDel.charAt(0)) == 'c') {
-            System.out.println("Canceling.");
+            System.out.println(RED + "Cancelling." + RESET);
             return;
         }
 
         long cpfDel;
         try {
             cpfDel = PersonUtils.parseStrCpfToLong(cpfStringDel);
-        } catch(NumberFormatException e) {
-            System.out.println(RED + "Invalid CPF format.\n " + RESET + "Use only numbers or ###.###.###-##.");
+        } catch (IllegalArgumentException iae) {
+            System.out.println(
+                RED + "CPF does not match any of the accepted formats.\n" + RESET +
+                "Use only 11 numbers or ###.###.###-##."
+            );
             return;
         }
 
@@ -824,33 +872,6 @@ public class Main {
         );
 
         System.out.print("Option> ");
-        short printWhichTree = consoleHandler.getUserOption((short) 1, (short) 6);
-    }
-
-    private static void addNewPerson(
-        AVLTreeGeneric<Pair<Integer, Long>> cpfTree,
-        AVLTreeGeneric<Pair<Integer, String>> nameTree,
-        AVLTreeGeneric<Pair<Integer, Long>> birthDateTree,
-        List<Person> persons,
-        String cpfString,
-        long cpfLong,
-        String rg,
-        String name,
-        String birthDate,
-        long birthDateMillis,
-        String city,
-        int index
-    ) {
-        Pair<Integer, Long> cpfPair = new Pair<>(index, cpfLong);
-        cpfTree.insert(cpfPair);
-
-        Pair<Integer, String> namePair = new Pair<>(index, name);
-        nameTree.insertDupAllow(namePair);
-
-        Pair<Integer, Long> birthDatePair = new Pair<>(index, birthDateMillis);
-        birthDateTree.insertDupAllow(birthDatePair);
-
-        Person person = new Person(cpfString, rg, name, birthDate, city);
-        persons.add(person);
+        int printWhichTree = consoleHandler.getUserOption(1, 6);
     }
 }

@@ -775,7 +775,8 @@ public class AVLTreeGeneric<T extends Comparable<T>> {
      * duplicates, use the method getKeyByValueDup for trees that allows duplicates
      */
     public <K, V extends Comparable<V>> int getKeyByValue(V value) {
-        return getKeyByValueRec(root, value);
+        int key = getKeyByValueRec(root, value);
+        return key;
     }
 
     private <K, V extends Comparable<V>> int getKeyByValueRec(Node<T> node, V value) {
@@ -874,6 +875,7 @@ public class AVLTreeGeneric<T extends Comparable<T>> {
         return keys;
     }
 
+    // Used to get the value of longs (birthdate unix epoch) on a pair node between low and high 
     private <K, V extends Comparable<V>> void getKeyOfAllLongsBetweenRec(
         long low,
         long high,

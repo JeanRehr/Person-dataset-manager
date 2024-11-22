@@ -7,6 +7,8 @@ import java.util.HashSet;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class PersonUtils {
     public static void addNewPerson(
@@ -185,7 +187,6 @@ public class PersonUtils {
     ) {
         int index = cpfTree.getKeyByValue(cpf);
         if (index == -1) {
-            System.out.println("No Person found with given CPF.");
             return null;
         }
         return persons.get(index);
@@ -196,14 +197,19 @@ public class PersonUtils {
         AVLTreeGeneric<Pair<Integer, String>> nameTree,
         String prefix
     ) {
+        List<Person> foundPersons = new ArrayList<>();
+
         List<String> names = nameTree.prefixMatchPair(prefix);
+        /*if (names.isEmpty()) {
+            return foundPersons; // early return of an empty list because of a wrong prefix value
+        }*/
+
         Set<Integer> indexes = new HashSet<>(); // HashSet to not allow for duplicate keys
 
         for (String name : names) {
             indexes.addAll(nameTree.getKeyByValueDup(name));
         }
 
-        List<Person> foundPersons = new ArrayList<>();
         for (int index : indexes) {
             foundPersons.add(persons.get(index));
         }
@@ -237,16 +243,68 @@ public class PersonUtils {
         System.out.println(person.toString());
     }
 
-    public static long parseStrCpfToLongSimple(String cpf) throws NumberFormatException {
-        return Long.parseLong(cpf);
-    }
-
-    public static long parseStrRgToLong(String rg) throws NumberFormatException {
+    public static long parseStrRgToLong(String rg) throws NumberFormatException, IllegalArgumentException {
         return Long.parseLong(rg);
     }
 
-    public static long parseStrCpfToLong(String cpf) throws NumberFormatException {
-        return Long.parseLong(cpf.replaceAll("[^\\d]", ""));
+
+
+    public static boolean isCpfExpectedFormat(String cpf) throws IllegalArgumentException {
+        String regexCpfFormatFull = "\\d{3}\\.\\d{3}\\.\\d{3}-\\d{2}";
+        String regexCpfFormatNum = "\\d{11}";
+
+        Pattern patternFormatFull = Pattern.compile(regexCpfFormatFull);
+        Pattern patternFormatNum = Pattern.compile(regexCpfFormatNum);
+
+        Matcher matcherFormatFull = patternFormatFull.matcher(cpf);
+        Matcher matcherFormatNum = patternFormatNum.matcher(cpf);
+
+        if (!matcherFormatFull.matches() && !matcherFormatNum.matches()) {
+            throw new IllegalArgumentException("CPF not in the expected format.");
+        }
+
+        return true;
     }
 
+    public static long parseStrCpfToLong(String cpf) throws IllegalArgumentException {
+        if (!isCpfExpectedFormat(cpf)) {
+            throw new IllegalArgumentException("CPF not in the expected format.");
+        }
+
+        return Long.parseLong(convertCpfFullToString(cpf));
+    }
+
+    public static String parseStrCpfToFull(String cpf) throws IllegalArgumentException {
+        if (!isCpfExpectedFormat(cpf)) {
+            throw new IllegalArgumentException("CPF not in the expected format.");
+        }
+
+        // remove any dots and dash
+        String cpfFull = convertCpfFullToString(cpf);
+
+        // insert dots and dash again to guarantee that they have it correctly
+        cpfFull = 
+        cpfFull.substring(0, 3) + "." + 
+        cpfFull.substring(3, 6) + "." + 
+        cpfFull.substring(6, 9) + "-" + 
+        cpfFull.substring(9, 11);
+
+        return cpfFull;
+    }
+
+    private static String convertCpfFullToString(String cpfFull) throws IllegalArgumentException {
+        if (!isCpfExpectedFormat(cpfFull)) {
+            throw new IllegalArgumentException("CPF not in the expected format.");
+        }
+
+        return cpfFull.replace(".", "").replace("-", "");
+    }
+
+    public static long parseStrCpfToLongSimpleDep(String cpf) throws NumberFormatException {
+        return Long.parseLong(cpf);
+    }
+
+    public static long parseStrCpfToLongDep(String cpf) throws NumberFormatException {
+        return Long.parseLong(cpf.replaceAll("\\d{3}\\.\\d{3}\\.\\d{3}-\\d{2}", ""));
+    }
 }
