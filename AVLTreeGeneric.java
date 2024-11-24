@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.function.Consumer;
 
 class Node<T> {
     public T data;
@@ -714,6 +715,21 @@ public class AVLTreeGeneric<T extends Comparable<T>> {
         }
     }
 
+    public List<T> inOrderTraversal() {
+        List<T> result = new ArrayList<>();
+        inOrderTraversal(root, result::add);
+        return result;
+    }
+
+    private void inOrderTraversal(Node<T> node, Consumer<T> consumer) {
+        if (node != null) {
+            inOrderTraversal(node.left, consumer);
+            consumer.accept(node.data);
+            inOrderTraversal(node.right, consumer);
+        }
+    }
+
+
     /*
      * Methods for Nodes of type Pair, where Key is an index of an array (int, but can be generic)
      * and the value is of type generic
@@ -889,12 +905,6 @@ public class AVLTreeGeneric<T extends Comparable<T>> {
         Pair<K, V> pair = (Pair<K, V>) node.data;
 
         long nodeValue = (Long) pair.getValue();
-
-        /*
-        if (-376012800000L <= 31651084800000L && 31651084800000L <= 31651084800000L) {
-            System.out.println("TESTING TESTING TESTING TESTING");
-        }
-        */
     
         if (nodeValue >= low) {
             getKeyOfAllLongsBetweenRec(low, high, node.left, keys);

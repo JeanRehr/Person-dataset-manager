@@ -50,61 +50,9 @@ public class PersonUtils {
         DateTimeFormatter dateFormat,
         long cpf
     ) {
-        /*
-        int indexDel = cpfTree.getKeyByValue(cpf);
-        if (indexDel == -1) {
-            System.out.println("CPF doesn't exist.");
-            return;
-        }
-
-        // remove from the arraylist
-        Person personDel = persons.remove(indexDel);
-
-        // remove from the cpfset to allow it to be added again
-        cpfSet.remove(cpf);
-        
-        LocalDate birthDateDel = LocalDate.parse(personDel.getBirthDate(), dateFormat);
-        long birthDateMillisDel = birthDateDel
-            .atStartOfDay(ZoneId.of("UTC"))
-            .toInstant()
-            .toEpochMilli();
-
-        cpfTree.remove(new Pair<>(indexDel, cpf));
-        nameTree.remove(new Pair<>(indexDel, personDel.getName()));
-        birthDateTree.remove(new Pair<>(indexDel, birthDateMillisDel));
-
-        // update the key on the trees starting from the index deleted
-        int personSize = persons.size();
-        for (int i = indexDel; i < personSize; i++) {
-            Person updatedPerson = persons.get(i);
-            cpfTree.updateKeyOfValue(i, parseStrCpfToLong(updatedPerson.getCpf()));
-            nameTree.updateKeyOfValue(i, updatedPerson.getName());
-            
-            long updatedBirthDateMillis = 
-                LocalDate.parse(updatedPerson.getBirthDate(), dateFormat)
-                .atStartOfDay(ZoneId.of("UTC"))
-                .toInstant()
-                .toEpochMilli();
-
-            birthDateTree.updateKeyOfValue(i, updatedBirthDateMillis);
-        }
-        */
-
-        /*
-        int indexDel = cpfTree.getKeyByValue(cpf);
-
-        if (indexDel == -1) {
-            System.out.println("CPF doesn't exist.");
-            return;
-        }
-
-        Person personDel = persons.remove(indexDel);
-        */
-
         Person personDel = getPersonByCpf(persons, cpfTree, cpf);
 
         if (personDel == null) {
-            System.out.println("CPF doesn't exist.");
             return;
         }
 
@@ -197,18 +145,15 @@ public class PersonUtils {
         AVLTreeGeneric<Pair<Integer, String>> nameTree,
         String prefix
     ) {
-        List<Person> foundPersons = new ArrayList<>();
-
         List<String> names = nameTree.prefixMatchPair(prefix);
-        /*if (names.isEmpty()) {
-            return foundPersons; // early return of an empty list because of a wrong prefix value
-        }*/
 
         Set<Integer> indexes = new HashSet<>(); // HashSet to not allow for duplicate keys
 
         for (String name : names) {
             indexes.addAll(nameTree.getKeyByValueDup(name));
         }
+
+        List<Person> foundPersons = new ArrayList<>();
 
         for (int index : indexes) {
             foundPersons.add(persons.get(index));
@@ -243,11 +188,9 @@ public class PersonUtils {
         System.out.println(person.toString());
     }
 
-    public static long parseStrRgToLong(String rg) throws NumberFormatException, IllegalArgumentException {
+    public static long parseStrRgToLong(String rg) {
         return Long.parseLong(rg);
     }
-
-
 
     public static boolean isCpfExpectedFormat(String cpf) throws IllegalArgumentException {
         String regexCpfFormatFull = "\\d{3}\\.\\d{3}\\.\\d{3}-\\d{2}";
@@ -293,18 +236,6 @@ public class PersonUtils {
     }
 
     private static String convertCpfFullToString(String cpfFull) throws IllegalArgumentException {
-        if (!isCpfExpectedFormat(cpfFull)) {
-            throw new IllegalArgumentException("CPF not in the expected format.");
-        }
-
         return cpfFull.replace(".", "").replace("-", "");
-    }
-
-    public static long parseStrCpfToLongSimpleDep(String cpf) throws NumberFormatException {
-        return Long.parseLong(cpf);
-    }
-
-    public static long parseStrCpfToLongDep(String cpf) throws NumberFormatException {
-        return Long.parseLong(cpf.replaceAll("\\d{3}\\.\\d{3}\\.\\d{3}-\\d{2}", ""));
     }
 }

@@ -31,45 +31,6 @@ public class ConsoleHandler {
         }
     }
 
-    public void displayOptions() {
-        System.out.print(
-            "+-----------------------------------------------------------+\n" +
-            "|Options: [1] Consult CPF.       [7] Print.                 |\n" +
-            "|         [2] Consult Name.      [8] Help.                  |\n" +
-            "|         [3] Consult Birthdate. [9] Exit.                  |\n" +
-            "|         [4] Load file.         [0] Clear Console.         |\n" +
-            "|         [5] Delete.            [10] Update or add person. |\n" +
-            "|         [6] Mass load files.   [11] Delete everything.    |\n" +
-            "+-----------------------------------------------------------+\n"
-        );
-    }
-    /*
-    ----------------------------------------
-    Main Menu
-    ----------------------------------------
-    [1] Consult by.
-    [2] Load.
-    [3] Update or add person.
-    [4] Save to file.
-    [5] Delete.
-    [6] Print.
-    [7] Help.
-    [8] Clear console.
-    [9] Exit.
-    ----------------------------------------
-    */
-
-    /*
-    "+-----------------------------------------------------------+\n" +
-    "|Options: [1] Consult CPF.          [7] Write to file.      |\n" +
-    "|         [2] Consult Name.         [8] Help.               |\n" +
-    "|         [3] Consult Birthdate.    [9] Exit.               |\n" +
-    "|         [4] Load file.            [0] Delete by CPF.      |\n" +
-    "|         [5] Load a directory.     [10] Print.             |\n" +
-    "|         [6] Update or add person. [11] Delete everything. |\n" +
-    "+-----------------------------------------------------------+\n"
-     */
-
     public <T> T parseValue(String input, Class<T> type) {
         try {
             if (type == Integer.class) {
@@ -152,6 +113,7 @@ public class ConsoleHandler {
 "| [7] Help.                 - Display this help message.                                 |\n" +
 "| [8] Clear console.        - Clears the screen.                                         |\n" +
 "| [9] Exit.                 - Exit the program.                                          |\n" +
+"| [10] Verbose mode.        - Will print CPFs that were updated when loading a file.     |\n" +
 "+----------------------------------------------------------------------------------------+\n" +
 "| INPUT FORMATS:                                                                         |\n" +
 "| CPF                       - Only numeric or in the format ###.###.###-##.              |\n" +

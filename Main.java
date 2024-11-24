@@ -43,7 +43,8 @@ public class Main {
             "Print.",
             "Help.",
             "Clear console.",
-            "Exit."
+            "Exit.",
+            "Verbose mode."
         };
 
         while (true) {
@@ -104,6 +105,14 @@ public class Main {
             consoleHandler.clearConsole();
             break;
         case 9: // Exit
+            break;
+        case 10: // Enable vebose
+            verbose = !verbose;
+            if (verbose) {
+                System.out.println("Verbose mode: " + GREEN + verbose + RESET);
+                break;
+            }
+            System.out.println("Verbose mode: " + RED + verbose + RESET);
             break;
         };
     }
@@ -416,34 +425,49 @@ public class Main {
         String sep
     ) {
         int i = 0;
+        // Skip an added line when a same cpf is in the csv, as it is updated instead of a new person
+        int skips = 0;
+        List<Integer> updatedIndex = new ArrayList<>();
+        // offset when adding to the list when it already has people
+        int offset = persons.size();
+        boolean updatePerson = false;
+        boolean dataValid = true;
+
+        List<Person> tempPersons = new ArrayList<>();
+        Set<Long> tempCpfSet = new HashSet<>();
+
+        AVLTreeGeneric<Pair<Integer, Long>> tempCpfTree = new AVLTreeGeneric<>();
+        AVLTreeGeneric<Pair<Integer, String>> tempNameTree = new AVLTreeGeneric<>();
+        AVLTreeGeneric<Pair<Integer, Long>> tempBirthDateTree = new AVLTreeGeneric<>();
+
+        for (Pair<Integer, Long> pair : cpfTree.inOrderTraversal()) {
+            tempCpfTree.insert(pair);
+        }
+        for (Pair<Integer, String> pair : nameTree.inOrderTraversal()) {
+            tempNameTree.insertDupAllow(pair);
+        }
+        for (Pair<Integer, Long> pair : birthDateTree.inOrderTraversal()) {
+            tempBirthDateTree.insertDupAllow(pair);
+        }
+
+        tempPersons.addAll(persons);
+        tempCpfSet.addAll(cpfSet);
+
         try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
-            String line = "";
-            
-            /* 
-             * when adding more CSVs, the indices that were in the list needs
-             * to be i plus the size of the arraylist getting passed on the function
-             * example: first csv loaded has 5 lines, 0-4, that correctly gets added to the trees
-             * and arraylist, calling this function again for another csv, i will be equal 0 again
-             * and add that as the key on the trees, however, the arraylist will have another
-             * index number for that new person, as it gets added to the last position on the list
-             */
-            int offset = persons.size();
+            String line;
             while((line = reader.readLine()) != null) {
                 String[] values = line.split(sep);
 
                 int index = offset + i;
+                i++;
 
                 String cpfString = PersonUtils.parseStrCpfToFull(values[0]);
-
                 long cpfLong = PersonUtils.parseStrCpfToLong(cpfString);
 
-                if (cpfSet.contains(cpfLong)) {
-                    System.out.println(
-                        RED +
-                        "*** CPF " + cpfLong + " already exists on the dataset, skipping. ***" +
-                        RESET
-                    );
-                    continue;
+                if (tempCpfSet.contains(cpfLong)) {
+                    // update existing person
+                    skips++;
+                    updatePerson = true;
                 }
 
                 // test if rg is indeed a number
@@ -452,50 +476,82 @@ public class Main {
                 String birthDate = values[3];
 
                 LocalDate birthDatePerson = DateUtils.parseDateInput(birthDate, dateFormat);
-
-                // Birthdates are transformed to unix epoch longs, to be easier
-                // to compare and balance
                 long birthDateMillis = DateUtils.convertDateToUnixEpoch(birthDatePerson, "UTC");
 
-                String city = values[4];
-
-                PersonUtils.addNewPerson(cpfTree, nameTree, birthDateTree, persons, cpfSet, cpfString, cpfLong, values[1], values[2], birthDate, birthDateMillis, city, index);
-                //cpfSet.add(cpf); // To not allow same CPFs, but allow same names/birthdates
-                i++;
+                if (updatePerson) {
+                    Person existingPerson = PersonUtils.getPersonByCpf(tempPersons, tempCpfTree, cpfLong);
+                    if (existingPerson != null) {
+                        int existingIndex = tempPersons.indexOf(existingPerson);
+                        PersonUtils.updatePerson(tempNameTree, tempBirthDateTree, tempPersons, existingIndex, values[1], values[2], birthDate, values[4], dateFormat);
+                        updatedIndex.add(existingIndex);
+                        continue;
+                    }
+                }
+                PersonUtils.addNewPerson(tempCpfTree, tempNameTree, tempBirthDateTree, tempPersons, tempCpfSet, cpfString, cpfLong, values[1], values[2], birthDate, birthDateMillis, values[4], index);
             }
-        } catch(FileNotFoundException fnfe) {
+            // Commit all changes if no errors occurred
+            if (dataValid) {
+                persons.clear();
+                persons.addAll(tempPersons);
+                cpfSet.clear();
+                cpfSet.addAll(tempCpfSet);
+    
+                // Clear and rebuild original trees from temp trees
+                if (cpfTree.getRoot() != null) {
+                    cpfTree.massRemove(cpfTree.getRoot().data);
+                    nameTree.massRemove(nameTree.getRoot().data);
+                    birthDateTree.massRemove(birthDateTree.getRoot().data);
+                }
+
+                for (Pair<Integer, Long> pair : tempCpfTree.inOrderTraversal()) {
+                    cpfTree.insert(pair);
+                }
+                for (Pair<Integer, String> pair : tempNameTree.inOrderTraversal()) {
+                    nameTree.insertDupAllow(pair);
+                }
+                for (Pair<Integer, Long> pair : tempBirthDateTree.inOrderTraversal()) {
+                    birthDateTree.insertDupAllow(pair);
+                }
+            }
+        } catch (FileNotFoundException fnfe) {
             System.out.println(RED + "*** " + filePath + ": No such file or directory. ***" + RESET);
-            return;
+            dataValid = false;
+        } catch (NumberFormatException nfe) {
+            System.out.println(
+                RED + "*** RG on line " + i + " is not in the correct format. ***\n" + RESET +
+                "Use only numbers for RG."
+            );
+            dataValid = false;
         } catch (IllegalArgumentException iae) {
             System.out.println(
-                RED + "CPF on line " + (i+1) + " does not match any of the accepted formats.\n" + RESET +
-                "Use only 11 numbers or ###.###.###-##."
+                RED + "*** CPF on line " + i + " does not match any of the accepted formats. ***\n" + RESET +
+                "Use 11 numbers or format ###.###.###-##, or check the separator used."
             );
-            return;
-        /*} catch(NumberFormatException nfe) {
-            System.out.println(
-                RED + "*** Fault in number parsing. ***\n" + RESET +
-                "Check file " + filePath + " for incorrect numbers on line " + (i+1) +
-                " or correct separator on file/passed as input.\n" +
-                RED + "*** Aborting load process for this file. ***" + RESET
-            );
-            return;*/
-        } catch(DateTimeParseException dtpe) {
+            dataValid = false;
+        } catch (DateTimeParseException dtpe) {
             System.out.println(
                 RED + "*** Fault in birthdate parsing. ***\n" + RESET +
-                "Check file " + filePath + " for incorrect birthdates on line " + (i + 1) + ".\n" +
-                "Correct format is: " + DATE_PATTERN + ".\n" +
-                RED + "*** Aborting load process for this file. ***" + RESET
+                "Check file " + filePath + " for incorrect birthdates on line " + i + ".\n" +
+                "Correct format is: " + DATE_PATTERN + ".\n"
             );
-            return;
+            dataValid = false;
         } catch(Exception e) {
             e.printStackTrace();
-            return;
+            dataValid = false;
         } finally {
-            if (i == 0) {
+            if (i == 0 || !dataValid) {
                 System.out.println(RED + "No lines were loaded from file: " + filePath + "." + RESET);
             } else {
-                System.out.println(GREEN + "Loaded " + i + " lines from file: " + filePath + "." + RESET);
+                System.out.println(GREEN + "Loaded " + (i - skips) + " lines " + RESET + "from file: " + filePath + " from a total of " + i + " lines");
+            }
+            if (!updatedIndex.isEmpty()) {
+                System.out.println(YELLOW + updatedIndex.size() + " persons were updated." + RESET);
+                if (verbose) {
+                    System.out.println("Updated CPFs:");
+                    for (int indexUpd : updatedIndex) {
+                        System.out.println(persons.get(indexUpd).getCpf());
+                    }
+                }
             }
         }
     }
@@ -514,12 +570,13 @@ public class Main {
         File[] files = path.listFiles();
 
         if (files == null) {
-            System.out.println("*** " + dirPath + ": No such file or directory. ***");
+            System.out.println(RED + "*** " + dirPath + ": No such file or directory. ***" + RESET);
             return;
         }
 
         for (int i = 0; i < files.length; i++) {
             if (files[i].isFile() && files[i].getName().toLowerCase().endsWith(".csv")) {
+                System.out.println(GREEN + "Loading persons from file " + files[i].getAbsolutePath() + "." + RESET + "\n...");
                 parseCsv(
                     cpfTree,
                     nameTree,
@@ -587,19 +644,10 @@ public class Main {
             return;
         }
 
-        try {
-            cpfString = PersonUtils.parseStrCpfToFull(cpfString);
-        } catch (IllegalArgumentException iae) {
-            System.out.println(
-                RED + "CPF does not match any of the accepted formats.\n" + RESET +
-                "Use only 11 numbers or ###.###.###-##."
-            );
-            return;
-        }
-
         long cpfLong;
 
         try {
+            cpfString = PersonUtils.parseStrCpfToFull(cpfString);
             cpfLong = PersonUtils.parseStrCpfToLong(cpfString);
         } catch (IllegalArgumentException iae) {
             System.out.println(
@@ -661,8 +709,8 @@ public class Main {
             birthDateObj = DateUtils.parseDateInput(birthDateStr, dateFormat);
         } catch (DateTimeParseException dtpe) {
             System.out.println(
-                RED + "*** Incorrect birthdate format. ***" + RESET +
-                "Correct format is: " + DATE_PATTERN + RED + "Aborting." + RESET
+                RED + "*** Incorrect birthdate format. ***\n" + RESET +
+                "Correct format is: " + DATE_PATTERN + RED + "\nAborting." + RESET
             );
             return;
         }
@@ -747,7 +795,6 @@ public class Main {
                 return;
             }
         }
-
         saveToFile(persons, file.getAbsolutePath(), sep);
     }
 
@@ -801,6 +848,13 @@ public class Main {
                 RED + "CPF does not match any of the accepted formats.\n" + RESET +
                 "Use only 11 numbers or ###.###.###-##."
             );
+            return;
+        }
+
+        Person personDel = PersonUtils.getPersonByCpf(persons, cpfTree, cpfDel);
+
+        if (personDel == null) {
+            System.out.println(RED + "CPF does not exist in the dataset." + RESET);
             return;
         }
 
